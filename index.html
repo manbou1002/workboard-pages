@@ -61,6 +61,35 @@
       line-height: 1.7;
       margin: 10px 0 0;
       max-width: 680px;
+    }    .pane-overview {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 24px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(12px);
+      display: grid;
+      gap: 12px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-bottom: 16px;
+      padding: 16px;
+    }
+    .pane-overview-item {
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(15, 23, 42, 0.55);
+      border-radius: 16px;
+      padding: 12px;
+    }
+    .pane-overview-item strong {
+      color: #cffafe;
+      display: block;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+    .pane-overview-item p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 0;
     }
     .summary {
       display: grid;
@@ -390,6 +419,7 @@
     @media (max-width: 980px) {
       .header { display: block; }
       .summary { margin-top: 18px; }
+      .pane-overview { grid-template-columns: 1fr; }
       .board { grid-template-columns: 1fr; }
       .right-stack { grid-template-rows: auto; }
       .two-columns { grid-template-columns: 1fr; }
@@ -411,6 +441,24 @@
         <div class="summary-card"><span>資料</span><strong data-summary-resources>0</strong></div>
       </div>
     </header>
+        <section class="pane-overview" aria-label="4ペインの説明">
+      <article class="pane-overview-item">
+        <strong>1. 仕事マップ</strong>
+        <p>今月の締切をカレンダーとタイムラインで俯瞰する。締切が近い日は色で強調する。</p>
+      </article>
+      <article class="pane-overview-item">
+        <strong>2. 案件リスト</strong>
+        <p>抱えている案件を一覧する。案件名・締切・次の一手・ステータスを見ながら追加・完了できる。</p>
+      </article>
+      <article class="pane-overview-item">
+        <strong>3. 今日の一手</strong>
+        <p>選択中の案件について、今日進める具体タスクをチェックリストで進める。</p>
+      </article>
+      <article class="pane-overview-item">
+        <strong>4. 資料ボックス</strong>
+        <p>資料リンク・案件詳細・決定事項メモを1か所に集約する。</p>
+      </article>
+    </section>
 
     <section class="board" aria-label="仕事管理4ペイン">
       <aside class="pane">
