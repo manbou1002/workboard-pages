@@ -1,0 +1,954 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>仕事管理シート UI</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050816;
+      --panel: rgba(15, 23, 42, 0.82);
+      --panel-strong: rgba(30, 41, 59, 0.86);
+      --border: rgba(148, 163, 184, 0.22);
+      --text: #e5eefb;
+      --muted: #94a3b8;
+      --cyan: #67e8f9;
+      --violet: #c4b5fd;
+      --pink: #f9a8d4;
+      --lime: #bef264;
+      --amber: #fcd34d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 5%, rgba(103, 232, 249, 0.16), transparent 30%),
+        radial-gradient(circle at 88% 8%, rgba(196, 181, 253, 0.18), transparent 32%),
+        radial-gradient(circle at 60% 95%, rgba(249, 168, 212, 0.14), transparent 32%),
+        var(--bg);
+    }
+    main {
+      width: min(1440px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 28px 0;
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      align-items: end;
+      margin-bottom: 18px;
+    }
+    .eyebrow {
+      color: #cffafe;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      margin: 0 0 8px;
+    }
+    h1 {
+      font-size: clamp(30px, 4vw, 52px);
+      letter-spacing: -0.05em;
+      line-height: 1.02;
+      margin: 0;
+    }
+    .lead {
+      color: var(--muted);
+      line-height: 1.7;
+      margin: 10px 0 0;
+      max-width: 680px;
+    }
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(92px, 1fr));
+      gap: 10px;
+      min-width: min(480px, 100%);
+    }
+    .summary-card, .pane {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 24px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      backdrop-filter: blur(12px);
+    }
+    .summary-card {
+      padding: 14px;
+    }
+    .summary-card span {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+    }
+    .summary-card strong {
+      display: block;
+      font-size: 24px;
+      margin-top: 3px;
+    }
+    .board {
+      display: grid;
+      grid-template-columns: minmax(260px, 0.85fr) minmax(340px, 1.1fr) minmax(300px, 0.95fr);
+      gap: 16px;
+      min-height: calc(100vh - 190px);
+    }
+    .right-stack {
+      display: grid;
+      grid-template-rows: 0.9fr 1.1fr;
+      gap: 16px;
+      min-height: 0;
+    }
+    .pane {
+      overflow: hidden;
+      padding: 20px;
+    }
+    .pane-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 16px;
+    }
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      font-size: 20px;
+      letter-spacing: -0.03em;
+      margin: 0;
+    }
+    .badge {
+      display: inline-grid;
+      place-items: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 10px;
+      background: rgba(103, 232, 249, 0.14);
+      color: #cffafe;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .hint {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+      margin: 6px 0 0;
+    }
+    .month {
+      border: 1px solid rgba(103, 232, 249, 0.22);
+      background: rgba(8, 47, 73, 0.22);
+      border-radius: 18px;
+      padding: 14px;
+    }
+    .month-title {
+      color: #cffafe;
+      font-weight: 900;
+      margin-bottom: 12px;
+    }
+    .calendar {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 6px;
+    }
+    .day {
+      aspect-ratio: 1;
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      background: rgba(2, 6, 23, 0.38);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 11px;
+      padding: 6px;
+      position: relative;
+    }
+    .day.hot {
+      border-color: rgba(249, 168, 212, 0.42);
+      background: rgba(249, 168, 212, 0.12);
+      color: #fce7f3;
+      font-weight: 900;
+    }
+    .day.soon {
+      border-color: rgba(252, 211, 77, 0.42);
+      background: rgba(252, 211, 77, 0.1);
+      color: #fde68a;
+      font-weight: 900;
+    }
+    .timeline {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+    .timeline-item {
+      border-left: 3px solid var(--cyan);
+      background: rgba(15, 23, 42, 0.66);
+      border-radius: 14px;
+      padding: 12px;
+    }
+    .timeline-item strong, .project-title, .move-title, .resource-title {
+      display: block;
+      line-height: 1.45;
+    }
+    .timeline-item small, .project-meta, .move-meta, .resource-meta {
+      color: var(--muted);
+      display: block;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-top: 5px;
+    }
+    .project-list {
+      display: grid;
+      gap: 10px;
+    }
+    .project-card {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: rgba(15, 23, 42, 0.62);
+      border-radius: 18px;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 12px;
+      padding: 14px;
+      text-align: left;
+      width: 100%;
+    }
+    .project-select {
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      cursor: pointer;
+      font: inherit;
+      padding: 0;
+      text-align: left;
+      min-width: 0;
+    }
+    .complete-control {
+      align-items: center;
+      color: var(--muted);
+      cursor: pointer;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 800;
+      gap: 6px;
+      height: fit-content;
+      white-space: nowrap;
+    }
+    .complete-control input {
+      accent-color: var(--lime);
+      width: auto;
+    }
+    .project-card.active {
+      border-color: rgba(103, 232, 249, 0.5);
+      background: rgba(103, 232, 249, 0.1);
+    }
+    .status {
+      border: 1px solid rgba(190, 242, 100, 0.3);
+      background: rgba(190, 242, 100, 0.1);
+      border-radius: 999px;
+      color: #ecfccb;
+      font-size: 11px;
+      font-weight: 900;
+      height: fit-content;
+      padding: 5px 8px;
+      white-space: nowrap;
+    }
+    .status.waiting {
+      border-color: rgba(252, 211, 77, 0.32);
+      background: rgba(252, 211, 77, 0.1);
+      color: #fde68a;
+    }
+    .status.todo {
+      border-color: rgba(196, 181, 253, 0.34);
+      background: rgba(196, 181, 253, 0.12);
+      color: #ede9fe;
+    }
+    .move-card {
+      border: 1px solid rgba(249, 168, 212, 0.32);
+      background: linear-gradient(135deg, rgba(249, 168, 212, 0.13), rgba(103, 232, 249, 0.08));
+      border-radius: 20px;
+      padding: 16px;
+    }
+    .move-title {
+      font-size: 20px;
+      letter-spacing: -0.03em;
+    }
+    .check-row {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      border: 1px solid rgba(103, 232, 249, 0.2);
+      background: rgba(8, 47, 73, 0.18);
+      border-radius: 14px;
+      margin-top: 10px;
+      padding: 10px;
+    }
+    .check-box {
+      width: 20px;
+      height: 20px;
+      border: 1px solid rgba(103, 232, 249, 0.6);
+      border-radius: 7px;
+      flex: 0 0 auto;
+    }
+    .resource-list {
+      display: grid;
+      gap: 10px;
+    }
+    .resource-card {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: var(--panel-strong);
+      border-radius: 16px;
+      padding: 13px;
+    }
+    .resource-link {
+      color: #cffafe;
+      display: inline-block;
+      font-size: 13px;
+      font-weight: 800;
+      margin-top: 8px;
+      text-decoration: none;
+    }
+    .form-grid {
+      border: 1px solid rgba(103, 232, 249, 0.18);
+      background: rgba(8, 47, 73, 0.14);
+      border-radius: 18px;
+      display: grid;
+      gap: 10px;
+      margin-bottom: 14px;
+      padding: 12px;
+    }
+    .field {
+      display: grid;
+      gap: 5px;
+    }
+    .field label {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    input, select, textarea {
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(2, 6, 23, 0.5);
+      border-radius: 12px;
+      color: var(--text);
+      font: inherit;
+      padding: 10px 11px;
+      width: 100%;
+    }
+    textarea {
+      min-height: 76px;
+      resize: vertical;
+    }
+    .button-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .primary-button, .ghost-button {
+      border: 0;
+      border-radius: 12px;
+      cursor: pointer;
+      font: inherit;
+      font-weight: 900;
+      padding: 10px 12px;
+    }
+    .primary-button {
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      color: #082f49;
+    }
+    .ghost-button {
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(15, 23, 42, 0.68);
+      color: var(--text);
+    }
+    .save-status {
+      color: var(--muted);
+      font-size: 12px;
+      min-height: 1.4em;
+    }
+    .memo {
+      border: 1px dashed rgba(148, 163, 184, 0.3);
+      border-radius: 16px;
+      color: #cbd5e1;
+      line-height: 1.7;
+      margin-top: 12px;
+      padding: 12px;
+    }
+    .edit-panel {
+      border: 1px solid rgba(196, 181, 253, 0.2);
+      background: rgba(30, 41, 59, 0.58);
+      border-radius: 18px;
+      display: grid;
+      gap: 10px;
+      margin-top: 12px;
+      padding: 12px;
+    }
+    .two-columns {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    @media (max-width: 980px) {
+      .header { display: block; }
+      .summary { margin-top: 18px; }
+      .board { grid-template-columns: 1fr; }
+      .right-stack { grid-template-rows: auto; }
+      .two-columns { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <header class="header">
+      <div>
+        <p class="eyebrow">WORKBOARD UI</p>
+        <h1>仕事全体を見渡す<br>4ペイン管理シート</h1>
+        <p class="lead">じぶん報告アプリとは別に作る、新しい仕事管理UIです。全体の流れ、案件、今日の一手、資料を1画面で見ます。</p>
+      </div>
+      <div class="summary" aria-label="サマリー">
+        <div class="summary-card"><span>案件</span><strong data-summary-projects>0</strong></div>
+        <div class="summary-card"><span>今週締切</span><strong data-summary-week>0</strong></div>
+        <div class="summary-card"><span>今日の一手</span><strong data-summary-tasks>0</strong></div>
+        <div class="summary-card"><span>資料</span><strong data-summary-resources>0</strong></div>
+      </div>
+    </header>
+
+    <section class="board" aria-label="仕事管理4ペイン">
+      <aside class="pane">
+        <div class="pane-head">
+          <div>
+            <h2><span class="badge">1</span>仕事マップ</h2>
+            <p class="hint">全体スケジュールと締切の山を先に見るペイン。</p>
+          </div>
+        </div>
+        <div class="month">
+          <div class="month-title" data-month-title>今月</div>
+          <div class="calendar" data-calendar></div>
+        </div>
+        <div class="timeline" data-timeline></div>
+      </aside>
+
+      <section class="pane">
+        <div class="pane-head">
+          <div>
+            <h2><span class="badge">2</span>案件リスト</h2>
+            <p class="hint">いま抱えている仕事をすべて並べるペイン。</p>
+          </div>
+        </div>
+        <form class="form-grid" data-project-form>
+          <div class="field">
+            <label for="project-name">案件名</label>
+            <input id="project-name" name="name" autocomplete="off" required placeholder="例: 新しい案件名">
+          </div>
+          <div class="field">
+            <label for="project-deadline">締切</label>
+            <input id="project-deadline" name="deadline" type="date">
+          </div>
+          <div class="field">
+            <label for="project-next-action">今日の一手</label>
+            <input id="project-next-action" name="nextAction" autocomplete="off" required placeholder="次にやる具体行動">
+          </div>
+          <div class="button-row">
+            <button class="primary-button" type="submit">案件を追加</button>
+            <span class="save-status" data-save-status></span>
+          </div>
+        </form>
+        <div class="project-list" data-project-list></div>
+      </section>
+
+      <div class="right-stack">
+        <section class="pane">
+          <div class="pane-head">
+            <div>
+              <h2><span class="badge">3</span>今日の一手</h2>
+              <p class="hint">選択中案件で、今日進める具体行動。</p>
+            </div>
+          </div>
+          <div data-today-pane></div>
+        </section>
+
+        <section class="pane">
+          <div class="pane-head">
+            <div>
+              <h2><span class="badge">4</span>資料ボックス</h2>
+              <p class="hint">案件詳細、資料リンク、決定事項メモを置くペイン。</p>
+            </div>
+          </div>
+          <div data-resource-pane></div>
+          <form class="edit-panel" data-project-edit-form>
+            <div class="two-columns">
+              <div class="field">
+                <label for="edit-status">ステータス</label>
+                <select id="edit-status" name="status">
+                  <option>未着手</option>
+                  <option>進行中</option>
+                  <option>確認待ち</option>
+                  <option>完了</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="edit-deadline">締切</label>
+                <input id="edit-deadline" name="deadline" type="date">
+              </div>
+            </div>
+            <div class="field">
+              <label for="edit-next-action">今日の一手</label>
+              <input id="edit-next-action" name="nextAction" autocomplete="off">
+            </div>
+            <div class="field">
+              <label for="edit-details">案件詳細</label>
+              <textarea id="edit-details" name="details"></textarea>
+            </div>
+            <div class="field">
+              <label for="edit-decision-memo">決定事項メモ</label>
+              <textarea id="edit-decision-memo" name="decisionMemo"></textarea>
+            </div>
+            <div class="button-row">
+              <button class="primary-button" type="submit">案件情報を保存</button>
+            </div>
+          </form>
+          <form class="form-grid" data-resource-form>
+            <div class="field">
+              <label for="resource-title">資料名</label>
+              <input id="resource-title" name="title" autocomplete="off" placeholder="例: 提案資料">
+            </div>
+            <div class="field">
+              <label for="resource-url">URL</label>
+              <input id="resource-url" name="url" autocomplete="off" placeholder="https://...">
+            </div>
+            <div class="button-row">
+              <button class="ghost-button" type="submit">資料を追加</button>
+            </div>
+          </form>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const fallbackData = {
+      projects: [
+        {
+          id: "ai-school-todo",
+          name: "AIスクール課題",
+          deadline: "2026-05-18",
+          status: "進行中",
+          nextAction: "4ペインUIを紙に書き出し、説明できる状態にする",
+          details: "月次課題として、仕事管理シートの4ペイン構成を整理する。",
+          decisionMemo: "ペイン名は「仕事マップ・案件リスト・今日の一手・資料ボックス」で固定。じぶん報告アプリ本体とは別UIとして作る。",
+          tasks: [
+            { text: "仕事マップの役割を書く", done: false },
+            { text: "案件リストの表示項目を書く", done: false },
+            { text: "資料ボックスに置くリンク例を書く", done: false },
+          ],
+          resources: [
+            { title: "AIスクール todo-5", url: "https://ai-driven-school-portal.com/pages/todo-5", note: "課題ページ / 4ペイン構成" },
+            { title: "じぶん報告アプリ図解", url: "https://diagram-public.vercel.app", note: "参考資料 / 提出済みURL" },
+          ],
+        },
+      ],
+    };
+
+    let state = fallbackData;
+    let selectedProjectId = "";
+    let cloudConfig = null;
+
+    const elements = {
+      calendar: document.querySelector("[data-calendar]"),
+      monthTitle: document.querySelector("[data-month-title]"),
+      timeline: document.querySelector("[data-timeline]"),
+      projectList: document.querySelector("[data-project-list]"),
+      todayPane: document.querySelector("[data-today-pane]"),
+      resourcePane: document.querySelector("[data-resource-pane]"),
+      projectForm: document.querySelector("[data-project-form]"),
+      projectEditForm: document.querySelector("[data-project-edit-form]"),
+      resourceForm: document.querySelector("[data-resource-form]"),
+      saveStatus: document.querySelector("[data-save-status]"),
+      summaryProjects: document.querySelector("[data-summary-projects]"),
+      summaryWeek: document.querySelector("[data-summary-week]"),
+      summaryTasks: document.querySelector("[data-summary-tasks]"),
+      summaryResources: document.querySelector("[data-summary-resources]"),
+    };
+
+    init();
+
+    async function init() {
+      cloudConfig = await loadCloudConfig();
+      state = await loadState();
+      selectedProjectId = sortedProjects()[0]?.id || "";
+      bindForms();
+      render();
+    }
+
+    async function loadCloudConfig() {
+      try {
+        const response = await fetch("workboard-config.json", { cache: "no-store" });
+        if (!response.ok) return null;
+        const config = await response.json();
+        if (!config.supabaseUrl || !config.supabaseAnonKey) return null;
+
+        return {
+          supabaseUrl: String(config.supabaseUrl).replace(/\/$/, ""),
+          supabaseAnonKey: config.supabaseAnonKey,
+          table: config.table || "workboard_state",
+          recordId: config.recordId || "default",
+        };
+      } catch {
+        return null;
+      }
+    }
+
+    async function loadState() {
+      if (cloudConfig) {
+        const cloudState = await loadCloudState();
+        if (cloudState) return cloudState;
+      }
+
+      try {
+        const response = await fetch("workboard-projects.json", { cache: "no-store" });
+        if (!response.ok) throw new Error("failed");
+        return await response.json();
+      } catch {
+        const saved = localStorage.getItem("workboard-projects");
+        return saved ? JSON.parse(saved) : fallbackData;
+      }
+    }
+
+    function bindForms() {
+      elements.projectForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const form = new FormData(elements.projectForm);
+        const name = String(form.get("name") || "").trim();
+        const nextAction = String(form.get("nextAction") || "").trim();
+        if (!name || !nextAction) return;
+
+        const project = {
+          id: "project-" + Date.now(),
+          name,
+          deadline: String(form.get("deadline") || ""),
+          status: "未着手",
+          nextAction,
+          details: "",
+          decisionMemo: "",
+          tasks: [{ text: nextAction, done: false }],
+          resources: [],
+        };
+
+        state.projects.push(project);
+        selectedProjectId = project.id;
+        elements.projectForm.reset();
+        await saveState();
+        render();
+      });
+
+      elements.resourceForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const project = selectedProject();
+        if (!project) return;
+
+        const form = new FormData(elements.resourceForm);
+        const title = String(form.get("title") || "").trim();
+        const url = String(form.get("url") || "").trim();
+        if (!title || !url) return;
+
+        project.resources = [...(project.resources || []), { title, url, note: "手入力" }];
+        elements.resourceForm.reset();
+        await saveState();
+        render();
+      });
+
+      elements.projectEditForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        const project = selectedProject();
+        if (!project) return;
+
+        const form = new FormData(elements.projectEditForm);
+        project.status = String(form.get("status") || "未着手");
+        project.deadline = String(form.get("deadline") || "");
+        project.nextAction = String(form.get("nextAction") || "").trim();
+        project.details = String(form.get("details") || "").trim();
+        project.decisionMemo = String(form.get("decisionMemo") || "").trim();
+
+        if (project.nextAction && !project.tasks?.some((task) => task.text === project.nextAction)) {
+          project.tasks = [{ text: project.nextAction, done: false }, ...(project.tasks || [])];
+        }
+
+        await saveState();
+        render();
+      });
+    }
+
+    async function saveState() {
+      localStorage.setItem("workboard-projects", JSON.stringify(state));
+
+      if (cloudConfig) {
+        try {
+          await saveCloudState();
+          elements.saveStatus.textContent = "Supabaseに保存しました";
+          return;
+        } catch {
+          elements.saveStatus.textContent = "Supabase保存に失敗しました。ブラウザ内には一時保存済みです";
+          return;
+        }
+      }
+
+      try {
+        const response = await fetch("workboard-projects", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(state),
+        });
+        if (!response.ok) throw new Error("failed");
+        elements.saveStatus.textContent = "保存しました";
+      } catch {
+        elements.saveStatus.textContent = "ブラウザ内に一時保存しました";
+      }
+    }
+
+    async function loadCloudState() {
+      const url = `${cloudConfig.supabaseUrl}/rest/v1/${cloudConfig.table}?id=eq.${encodeURIComponent(cloudConfig.recordId)}&select=data`;
+      const response = await fetch(url, {
+        headers: supabaseHeaders(),
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("failed to load cloud state");
+
+      const rows = await response.json();
+      return rows[0]?.data || null;
+    }
+
+    async function saveCloudState() {
+      const url = `${cloudConfig.supabaseUrl}/rest/v1/${cloudConfig.table}?on_conflict=id`;
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          ...supabaseHeaders(),
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates,return=minimal",
+        },
+        body: JSON.stringify({
+          id: cloudConfig.recordId,
+          data: state,
+          updated_at: new Date().toISOString(),
+        }),
+      });
+      if (!response.ok) throw new Error("failed to save cloud state");
+    }
+
+    function supabaseHeaders() {
+      return {
+        "apikey": cloudConfig.supabaseAnonKey,
+        "Authorization": `Bearer ${cloudConfig.supabaseAnonKey}`,
+      };
+    }
+
+    function render() {
+      const projects = sortedProjects();
+      renderSummary(projects);
+      renderCalendar(projects);
+      renderTimeline(projects);
+      renderProjects(projects);
+      renderTodayPane();
+      renderResourcePane();
+      renderEditForm();
+    }
+
+    function renderSummary(projects) {
+      elements.summaryProjects.textContent = projects.length;
+      elements.summaryWeek.textContent = projects.filter((project) => isWithinDays(project.deadline, 7)).length;
+      elements.summaryTasks.textContent = projects.reduce((count, project) => count + (project.tasks || []).filter((task) => !task.done).length, 0);
+      elements.summaryResources.textContent = projects.reduce((count, project) => count + (project.resources || []).length, 0);
+    }
+
+    function renderCalendar(projects) {
+      const current = new Date();
+      const year = current.getFullYear();
+      const month = current.getMonth();
+      const deadlineDays = new Map(projects.filter((project) => project.deadline).map((project) => [project.deadline, project]));
+      const lastDay = new Date(year, month + 1, 0).getDate();
+
+      elements.monthTitle.textContent = `${year}年${month + 1}月`;
+      elements.calendar.innerHTML = Array.from({ length: lastDay }, (_, index) => {
+        const day = index + 1;
+        const iso = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        const project = deadlineDays.get(iso);
+        const className = project ? (isWithinDays(project.deadline, 3) ? "day hot" : "day soon") : "day";
+        return `<div class="${className}" title="${escapeHtml(project?.name || "")}">${day}</div>`;
+      }).join("");
+    }
+
+    function renderTimeline(projects) {
+      const upcoming = projects.filter((project) => project.deadline).slice(0, 5);
+      elements.timeline.innerHTML = upcoming.length > 0
+        ? upcoming.map((project) => `
+            <button class="timeline-item project-card" type="button" data-select-project="${escapeHtml(project.id)}">
+              <strong>${formatDate(project.deadline)} ${escapeHtml(project.name)}</strong>
+              <small>${escapeHtml(project.nextAction || "次の一手未設定")}</small>
+            </button>`).join("")
+        : `<div class="timeline-item"><strong>締切未設定</strong><small>案件に締切を入れると、ここに流れが出ます。</small></div>`;
+
+      elements.timeline.querySelectorAll("[data-select-project]").forEach((button) => {
+        button.addEventListener("click", () => selectProject(button.dataset.selectProject));
+      });
+    }
+
+    function renderProjects(projects) {
+      if (projects.length === 0) {
+        elements.projectList.innerHTML = `<p class="hint">表示中の案件はありません。新しい案件を追加するか、完了済み案件はJSONに保存されています。</p>`;
+        return;
+      }
+
+      elements.projectList.innerHTML = projects.map((project) => `
+        <article class="project-card ${project.id === selectedProjectId ? "active" : ""}">
+          <button class="project-select" type="button" data-select-project="${escapeHtml(project.id)}">
+            <strong class="project-title">${escapeHtml(project.name)}</strong>
+            <span class="project-meta">締切: ${project.deadline ? formatDate(project.deadline) : "未設定"} / 次: ${escapeHtml(project.nextAction || "未設定")}</span>
+          </button>
+          <label class="complete-control">
+            <input type="checkbox" data-complete-project="${escapeHtml(project.id)}">
+            完了
+          </label>
+        </article>`).join("");
+
+      elements.projectList.querySelectorAll("[data-select-project]").forEach((button) => {
+        button.addEventListener("click", () => selectProject(button.dataset.selectProject));
+      });
+      elements.projectList.querySelectorAll("[data-complete-project]").forEach((checkbox) => {
+        checkbox.addEventListener("change", async () => {
+          await completeProject(checkbox.dataset.completeProject);
+        });
+      });
+    }
+
+    function renderTodayPane() {
+      const project = selectedProject();
+      if (!project) {
+        elements.todayPane.innerHTML = `<p class="hint">案件を追加すると、今日の一手が表示されます。</p>`;
+        return;
+      }
+
+      elements.todayPane.innerHTML = `
+        <article class="move-card">
+          <span class="move-meta">${escapeHtml(project.name)}</span>
+          <strong class="move-title">${escapeHtml(project.nextAction || "次の一手を入力してください")}</strong>
+        </article>
+        ${(project.tasks || []).map((task, index) => `
+          <label class="check-row">
+            <input type="checkbox" data-task-index="${index}" ${task.done ? "checked" : ""}>
+            <span>${escapeHtml(task.text)}</span>
+          </label>`).join("")}`;
+
+      elements.todayPane.querySelectorAll("[data-task-index]").forEach((checkbox) => {
+        checkbox.addEventListener("change", async () => {
+          project.tasks[Number(checkbox.dataset.taskIndex)].done = checkbox.checked;
+          await saveState();
+          render();
+        });
+      });
+    }
+
+    function renderResourcePane() {
+      const project = selectedProject();
+      if (!project) {
+        elements.resourcePane.innerHTML = `<p class="hint">案件を選ぶと、資料ボックスが表示されます。</p>`;
+        return;
+      }
+
+      const resources = project.resources || [];
+      elements.resourcePane.innerHTML = `
+        <div class="resource-list">
+          ${resources.length > 0 ? resources.map((resource) => `
+            <article class="resource-card">
+              <strong class="resource-title">${escapeHtml(resource.title)}</strong>
+              <span class="resource-meta">${escapeHtml(resource.note || "資料")}</span>
+              <a class="resource-link" href="${escapeHtml(resource.url)}" target="_blank" rel="noopener noreferrer">資料を開く</a>
+            </article>`).join("") : `<p class="hint">まだ資料リンクはありません。</p>`}
+        </div>
+        <div class="memo">
+          <strong>案件詳細</strong><br>
+          ${escapeHtml(project.details || "詳細メモは未入力です。")}
+          <br><br>
+          <strong>決定事項</strong><br>
+          ${escapeHtml(project.decisionMemo || "決定事項は未入力です。")}
+        </div>`;
+    }
+
+    function renderEditForm() {
+      const project = selectedProject();
+      elements.projectEditForm.hidden = !project;
+      elements.resourceForm.hidden = !project;
+      if (!project) return;
+
+      elements.projectEditForm.elements.status.value = project.status || "未着手";
+      elements.projectEditForm.elements.deadline.value = project.deadline || "";
+      elements.projectEditForm.elements.nextAction.value = project.nextAction || "";
+      elements.projectEditForm.elements.details.value = project.details || "";
+      elements.projectEditForm.elements.decisionMemo.value = project.decisionMemo || "";
+    }
+
+    function selectedProject() {
+      return state.projects.find((project) => project.id === selectedProjectId);
+    }
+
+    async function completeProject(projectId) {
+      const project = state.projects.find((item) => item.id === projectId);
+      if (!project) return;
+
+      project.completed = true;
+      project.status = "完了";
+      project.completedAt = new Date().toISOString();
+
+      if (selectedProjectId === projectId) {
+        selectedProjectId = sortedProjects().find((item) => item.id !== projectId)?.id || "";
+      }
+
+      await saveState();
+      render();
+    }
+
+    function selectProject(projectId) {
+      selectedProjectId = projectId;
+      render();
+    }
+
+    function sortedProjects() {
+      return [...(state.projects || [])].sort((a, b) => {
+        if (a.completed && !b.completed) return 1;
+        if (!a.completed && b.completed) return -1;
+        if (!a.deadline && !b.deadline) return 0;
+        if (!a.deadline) return 1;
+        if (!b.deadline) return -1;
+        return a.deadline.localeCompare(b.deadline);
+      }).filter((project) => !project.completed && project.status !== "完了");
+    }
+
+    function isWithinDays(dateString, days) {
+      if (!dateString) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const date = new Date(`${dateString}T00:00:00`);
+      const diff = (date - today) / 86_400_000;
+      return diff >= 0 && diff <= days;
+    }
+
+    function formatDate(dateString) {
+      if (!dateString) return "未設定";
+      const date = new Date(`${dateString}T00:00:00`);
+      return `${date.getMonth() + 1}/${date.getDate()}`;
+    }
+
+    function statusClass(status) {
+      if (status === "確認待ち") return "waiting";
+      if (status === "未着手") return "todo";
+      return "";
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+  </script>
+</body>
+</html>

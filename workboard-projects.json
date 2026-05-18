@@ -1,0 +1,127 @@
+{
+  "projects": [
+    {
+      "id": "ai-school-todo",
+      "name": "AIスクール課題",
+      "deadline": "2026-05-18",
+      "status": "進行中",
+      "nextAction": "4ペインUIを紙に書き出し、説明できる状態にする",
+      "details": "月次課題として、仕事管理シートの4ペイン構成を整理する。",
+      "decisionMemo": "ペイン名は「仕事マップ・案件リスト・今日の一手・資料ボックス」で固定。じぶん報告アプリ本体とは別UIとして作る。",
+      "tasks": [
+        {
+          "text": "仕事マップの役割を書く",
+          "done": false
+        },
+        {
+          "text": "案件リストの表示項目を書く",
+          "done": false
+        },
+        {
+          "text": "資料ボックスに置くリンク例を書く",
+          "done": false
+        }
+      ],
+      "resources": [
+        {
+          "title": "AIスクール todo-5",
+          "url": "https://ai-driven-school-portal.com/pages/todo-5",
+          "note": "課題ページ / 4ペイン構成"
+        },
+        {
+          "title": "じぶん報告アプリ図解",
+          "url": "https://diagram-public.vercel.app",
+          "note": "参考資料 / 提出済みURL"
+        }
+      ]
+    },
+    {
+      "id": "a-company-card",
+      "name": "A社 クレジット明細",
+      "deadline": "2026-05-20",
+      "status": "未着手",
+      "nextAction": "明細を確認して送る",
+      "details": "送付前に明細内容と宛先を確認する。",
+      "decisionMemo": "",
+      "tasks": [
+        {
+          "text": "明細ファイルを確認する",
+          "done": false
+        },
+        {
+          "text": "送付文を作る",
+          "done": false
+        }
+      ],
+      "resources": []
+    },
+    {
+      "id": "i-company-project",
+      "name": "I社向け案件",
+      "deadline": "",
+      "status": "確認待ち",
+      "nextAction": "取材先候補を整理",
+      "details": "候補店舗と季節要因を確認して、次の相談材料を作る。",
+      "decisionMemo": "夏の混雑を避ける方向も検討する。",
+      "tasks": [
+        {
+          "text": "取材候補を3つに絞る",
+          "done": false
+        }
+      ],
+      "resources": []
+    },
+    {
+      "id": "d-company-naming",
+      "name": "D社ネーミング",
+      "deadline": "2026-05-26",
+      "status": "進行中",
+      "nextAction": "案を3つに絞る",
+      "details": "候補案の方向性を整理して、比較できる形にする。",
+      "decisionMemo": "",
+      "tasks": [
+        {
+          "text": "候補案を洗い出す",
+          "done": false
+        },
+        {
+          "text": "3案に絞る",
+          "done": false
+        }
+      ],
+      "resources": []
+    },
+    {
+      "id": "project-1779010897944",
+      "name": "ディテクノ新社名",
+      "deadline": "2026-05-25",
+      "status": "未着手",
+      "nextAction": "ネーミング案をさらに広げる／ステートメントも進める",
+      "details": "",
+      "decisionMemo": "",
+      "tasks": [
+        {
+          "text": "ネーミング案をさらに広げる／ステートメントも進める",
+          "done": false
+        }
+      ],
+      "resources": []
+    },
+    {
+      "id": "project-1779011029897",
+      "name": "今治カフェ特集",
+      "deadline": "2026-06-05",
+      "status": "未着手",
+      "nextAction": "編集を進める",
+      "details": "",
+      "decisionMemo": "",
+      "tasks": [
+        {
+          "text": "編集を進める",
+          "done": false
+        }
+      ],
+      "resources": []
+    }
+  ]
+}
