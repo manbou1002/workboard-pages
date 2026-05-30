@@ -392,6 +392,23 @@
       display: grid;
       gap: 5px;
     }
+    .date-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+    }
+    .calendar-button {
+      border: 1px solid rgba(103, 232, 249, 0.28);
+      background: rgba(103, 232, 249, 0.1);
+      border-radius: 12px;
+      color: #cffafe;
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 0 11px;
+      white-space: nowrap;
+    }
     .field label {
       color: var(--muted);
       font-size: 12px;
@@ -539,7 +556,10 @@
           </div>
           <div class="field">
             <label for="project-deadline">締切</label>
-            <input id="project-deadline" name="deadline" type="date">
+            <div class="date-row">
+              <input id="project-deadline" name="deadline" type="date">
+              <button class="calendar-button" type="button" data-open-date="project-deadline">カレンダー</button>
+            </div>
           </div>
           <div class="field">
             <label for="project-next-action">今日の一手</label>
@@ -585,7 +605,10 @@
               </div>
               <div class="field">
                 <label for="edit-deadline">締切</label>
-                <input id="edit-deadline" name="deadline" type="date">
+                <div class="date-row">
+                  <input id="edit-deadline" name="deadline" type="date">
+                  <button class="calendar-button" type="button" data-open-date="edit-deadline">カレンダー</button>
+                </div>
               </div>
             </div>
             <div class="field">
@@ -772,6 +795,18 @@
 
         await saveState();
         render();
+      });
+
+      document.querySelectorAll("[data-open-date]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const input = document.getElementById(button.dataset.openDate);
+          if (!input) return;
+          if (typeof input.showPicker === "function") {
+            input.showPicker();
+            return;
+          }
+          input.focus();
+        });
       });
     }
 
