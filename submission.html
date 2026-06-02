@@ -1,0 +1,339 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>仕事管理シート 提出用図解</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050816;
+      --panel: rgba(15, 23, 42, 0.86);
+      --panel-strong: rgba(30, 41, 59, 0.86);
+      --border: rgba(148, 163, 184, 0.24);
+      --text: #e5eefb;
+      --muted: #94a3b8;
+      --cyan: #67e8f9;
+      --violet: #c4b5fd;
+      --pink: #f9a8d4;
+      --lime: #bef264;
+      --amber: #fcd34d;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 5%, rgba(103, 232, 249, 0.16), transparent 30%),
+        radial-gradient(circle at 88% 8%, rgba(196, 181, 253, 0.18), transparent 32%),
+        radial-gradient(circle at 60% 95%, rgba(249, 168, 212, 0.14), transparent 32%),
+        var(--bg);
+    }
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+    .hero {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 30px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
+      padding: clamp(24px, 4vw, 42px);
+      margin-bottom: 18px;
+    }
+    .eyebrow {
+      color: #cffafe;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      margin: 0 0 10px;
+    }
+    h1 {
+      font-size: clamp(34px, 6vw, 64px);
+      letter-spacing: -0.06em;
+      line-height: 1.02;
+      margin: 0;
+    }
+    .lead {
+      color: #cbd5e1;
+      font-size: 17px;
+      line-height: 1.8;
+      margin: 18px 0 0;
+      max-width: 840px;
+    }
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+    .button {
+      border: 1px solid rgba(103, 232, 249, 0.28);
+      background: rgba(103, 232, 249, 0.1);
+      border-radius: 999px;
+      color: #cffafe;
+      display: inline-flex;
+      font-weight: 900;
+      padding: 11px 15px;
+      text-decoration: none;
+    }
+    .button.primary {
+      background: linear-gradient(135deg, var(--cyan), var(--violet));
+      border: 0;
+      color: #082f49;
+    }
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+    .grid.two {
+      grid-template-columns: 1fr 1fr;
+    }
+    .card {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 24px;
+      box-shadow: 0 18px 60px rgba(0, 0, 0, 0.22);
+      padding: 24px;
+    }
+    h2 {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 24px;
+      letter-spacing: -0.04em;
+      margin: 0 0 14px;
+    }
+    h3 {
+      color: #e0f2fe;
+      font-size: 17px;
+      margin: 18px 0 8px;
+    }
+    p, li {
+      color: #cbd5e1;
+      line-height: 1.75;
+    }
+    ul {
+      margin: 0;
+      padding-left: 1.25em;
+    }
+    .badge {
+      display: inline-grid;
+      place-items: center;
+      width: 30px;
+      height: 30px;
+      border-radius: 10px;
+      background: rgba(103, 232, 249, 0.14);
+      color: #cffafe;
+      font-size: 12px;
+      font-weight: 900;
+    }
+    .screen {
+      border: 1px solid rgba(103, 232, 249, 0.24);
+      background: #020617;
+      border-radius: 24px;
+      overflow: hidden;
+    }
+    .screen-bar {
+      align-items: center;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.2);
+      display: flex;
+      gap: 8px;
+      padding: 12px 14px;
+    }
+    .dot {
+      width: 11px;
+      height: 11px;
+      border-radius: 999px;
+      background: #fb7185;
+    }
+    .dot:nth-child(2) { background: #facc15; }
+    .dot:nth-child(3) { background: #4ade80; }
+    iframe {
+      border: 0;
+      display: block;
+      height: 620px;
+      width: 100%;
+    }
+    .pane-map {
+      display: grid;
+      grid-template-columns: 0.9fr 1.1fr 1fr;
+      gap: 12px;
+    }
+    .pane-box {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: var(--panel-strong);
+      border-radius: 18px;
+      padding: 16px;
+      min-height: 132px;
+    }
+    .pane-box strong {
+      color: #cffafe;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .pane-box small {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+    .right-stack {
+      display: grid;
+      gap: 12px;
+    }
+    .callout {
+      border: 1px solid rgba(190, 242, 100, 0.22);
+      background: rgba(190, 242, 100, 0.08);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .callout strong {
+      color: #ecfccb;
+    }
+    .point-list {
+      display: grid;
+      gap: 12px;
+    }
+    .point {
+      border: 1px solid rgba(148, 163, 184, 0.18);
+      background: rgba(15, 23, 42, 0.55);
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .point strong {
+      color: #fce7f3;
+      display: block;
+      margin-bottom: 4px;
+    }
+    @media (max-width: 900px) {
+      .grid.two, .pane-map { grid-template-columns: 1fr; }
+      iframe { height: 520px; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">AI-DRIVEN SCHOOL SUBMISSION</p>
+      <h1>仕事全体を見渡す<br>4ペイン管理シート</h1>
+      <p class="lead">
+        複数の仕事が同時に進むと、締切、次にやること、資料の場所が散らばって「今なにを進めるべきか」が見えにくくなります。
+        このUIは、仕事の全体像と今日の一手を同じ画面で確認できる個人用ワークスペースです。
+      </p>
+      <div class="hero-actions">
+        <a class="button primary" href="./" target="_blank" rel="noopener noreferrer">実際のアプリを開く</a>
+        <a class="button" href="#screen">画面キャプチャを見る</a>
+        <a class="button" href="#presentation">発表メモを見る</a>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card" id="screen">
+        <h2><span class="badge">1</span>ツールの画面キャプチャ</h2>
+        <p>提出用に、実際に動いているワークボード画面をライブプレビューとして埋め込んでいます。案件追加、締切指定、資料追加、完了チェックができます。</p>
+        <div class="screen" aria-label="仕事管理シートの画面キャプチャ">
+          <div class="screen-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+          <iframe src="./" title="仕事管理シート"></iframe>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2><span class="badge">2</span>ツールで解決できる課題</h2>
+        <div class="callout">
+          <strong>解決したいこと:</strong>
+          <p>いま抱えている仕事、締切、次にやること、資料リンクを1か所に集めて、どの仕事から進めるべきか迷わない状態にする。</p>
+        </div>
+        <h3>困っていたこと</h3>
+        <ul>
+          <li>案件ごとの締切が頭の中や別ツールに散らばる。</li>
+          <li>「次にやること」が曖昧なまま案件だけが増える。</li>
+          <li>資料リンクや決定事項を探す時間が発生する。</li>
+          <li>終わった仕事を一覧から消して、今必要な仕事だけ見たい。</li>
+        </ul>
+      </article>
+
+      <article class="card">
+        <h2><span class="badge">3</span>4ペインの決め方</h2>
+        <div class="pane-map">
+          <div class="pane-box">
+            <strong>仕事マップ</strong>
+            <small>全体スケジュールと締切の山を見る。左側に置いて、まず全体の流れを把握する。</small>
+          </div>
+          <div class="pane-box">
+            <strong>案件リスト</strong>
+            <small>抱えている仕事を一覧する。案件名、締切、ステータス、次の一手を並べる。</small>
+          </div>
+          <div class="right-stack">
+            <div class="pane-box">
+              <strong>今日の一手</strong>
+              <small>選択した案件について、今日進める具体タスクを確認する。</small>
+            </div>
+            <div class="pane-box">
+              <strong>資料ボックス</strong>
+              <small>資料リンク、案件詳細、決定事項メモを1か所に集約する。</small>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <section class="grid two">
+        <article class="card">
+          <h2><span class="badge">4</span>工夫したポイント</h2>
+          <div class="point-list">
+            <div class="point">
+              <strong>左から全体像を見られる構成</strong>
+              <p>「今日やること」からではなく、左側に仕事マップを置いて、まず全体の締切感が見えるようにしました。</p>
+            </div>
+            <div class="point">
+              <strong>どのMacからでも編集できる保存先</strong>
+              <p>GitHub Pagesだけでは保存できないため、Supabaseに案件データを保存する形にしました。</p>
+            </div>
+            <div class="point">
+              <strong>入力の負担を減らすUI</strong>
+              <p>締切はカレンダーボタンから選べるようにし、年号を毎回手入力しなくてよい形にしました。</p>
+            </div>
+            <div class="point">
+              <strong>終わった仕事を消せる</strong>
+              <p>完了チェックを入れると画面から非表示になり、いま見るべき仕事だけに集中できます。</p>
+            </div>
+          </div>
+        </article>
+
+        <article class="card">
+          <h2><span class="badge">5</span>苦労したポイント</h2>
+          <div class="point-list">
+            <div class="point">
+              <strong>既存アプリと混ぜない判断</strong>
+              <p>最初はじぶん報告アプリに組み込みましたが、目的が違うため、別のUIとして作り直しました。</p>
+            </div>
+            <div class="point">
+              <strong>公開URLと編集保存の両立</strong>
+              <p>GitHub Pagesは静的公開なので、そのままでは保存できません。Supabaseを組み合わせることで解決しました。</p>
+            </div>
+            <div class="point">
+              <strong>画面の言葉を決めること</strong>
+              <p>ペイン名を「仕事マップ・案件リスト・今日の一手・資料ボックス」に固定するまで、何度か言葉を調整しました。</p>
+            </div>
+            <div class="point">
+              <strong>スマホでも迷わない導線</strong>
+              <p>4ペインが縦に並んでも移動しやすいよう、上部の説明から各ペインへジャンプできるようにしました。</p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <article class="card" id="presentation">
+        <h2><span class="badge">6</span>発表で話すこと</h2>
+        <ul>
+          <li><strong>どんな画面にしたか:</strong> 複数案件を、仕事マップ・案件リスト・今日の一手・資料ボックスの4ペインで管理する画面にしました。</li>
+          <li><strong>何を解決するか:</strong> 締切、次にやること、資料の場所が散らばって迷う問題を、1画面で見えるようにしました。</li>
+          <li><strong>作ってみた感想:</strong> 画面を作るだけでなく、保存先や公開方法まで考える必要がありました。GitHub PagesとSupabaseを組み合わせるところが特に学びでした。</li>
+        </ul>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
