@@ -137,6 +137,7 @@
       background: #020617;
       border-radius: 24px;
       overflow: hidden;
+      margin-top: 16px;
     }
     .screen-bar {
       align-items: center;
@@ -158,6 +159,25 @@
       display: block;
       height: 620px;
       width: 100%;
+    }
+    .screenshot {
+      border: 1px solid rgba(103, 232, 249, 0.24);
+      background: #020617;
+      border-radius: 24px;
+      display: block;
+      margin-top: 16px;
+      overflow: hidden;
+      width: 100%;
+    }
+    .screenshot img {
+      display: block;
+      width: 100%;
+    }
+    .caption {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.7;
+      margin: 10px 0 0;
     }
     .pane-map {
       display: grid;
@@ -233,7 +253,11 @@
     <section class="grid">
       <article class="card" id="screen">
         <h2><span class="badge">1</span>ツールの画面キャプチャ</h2>
-        <p>提出用に、実際に動いているワークボード画面をライブプレビューとして埋め込んでいます。案件追加、締切指定、資料追加、完了チェックができます。</p>
+        <p>実際に動いているワークボード画面の静止キャプチャです。左から、仕事マップ、案件リスト、今日の一手、資料ボックスへ進める構成にしています。</p>
+        <figure class="screenshot">
+          <img src="./assets/workboard-screenshot.png" alt="仕事管理シートの4ペイン画面。仕事マップ、案件リスト、今日の一手、資料ボックスが並んでいる。">
+        </figure>
+        <p class="caption">静止画像で画面の見た目を確認できるようにし、下には操作できるライブプレビューも残しています。</p>
         <div class="screen" aria-label="仕事管理シートの画面キャプチャ">
           <div class="screen-bar"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
           <iframe src="./" title="仕事管理シート"></iframe>
@@ -256,7 +280,7 @@
       </article>
 
       <article class="card">
-        <h2><span class="badge">3</span>4ペインの決め方</h2>
+        <h2><span class="badge">3</span>画面構成と4ペインの工夫</h2>
         <div class="pane-map">
           <div class="pane-box">
             <strong>仕事マップ</strong>
@@ -289,7 +313,7 @@
             </div>
             <div class="point">
               <strong>どのMacからでも編集できる保存先</strong>
-              <p>GitHub Pagesだけでは保存できないため、Supabaseに案件データを保存する形にしました。</p>
+              <p>今回は画面の見た目が主役ですが、どこからでも同じ画面を試せるように、案件データはSupabaseに保存する形にしました。</p>
             </div>
             <div class="point">
               <strong>入力の負担を減らすUI</strong>
