@@ -637,6 +637,10 @@
               <label for="resource-url">URL</label>
               <input id="resource-url" name="url" autocomplete="off" placeholder="https://...">
             </div>
+            <div class="field">
+              <label for="resource-file">PDF / PowerPoint</label>
+              <input id="resource-file" name="file" type="file" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+            </div>
             <div class="button-row">
               <button class="ghost-button" type="submit">資料を追加</button>
             </div>
@@ -713,6 +717,7 @@
           supabaseAnonKey: config.supabaseAnonKey,
           table: config.table || "workboard_state",
           recordId: config.recordId || "default",
+          resourceBucket: config.resourceBucket || "workboard-resources",
         };
       } catch {
         return null;
@@ -769,10 +774,23 @@
 
         const form = new FormData(elements.resourceForm);
         const title = String(form.get("title") || "").trim();
-        const url = String(form.get("url") || "").trim();
-        if (!title || !url) return;
+        let url = String(form.get("url") || "").trim();
+        const file = form.get("file");
+        if (!title && !file?.name) return;
+        if (!url && !file?.name) return;
 
-        project.resources = [...(project.resources || []), { title, url, note: "手入力" }];
+        let note = url ? "手入力URL" : "アップロード資料";
+        if (file?.name) {
+          try {
+            url = await uploadResourceFile(project, file);
+            note = file.name;
+          } catch {
+            elements.saveStatus.textContent = "ファイルをアップロードできませんでした。Supabase Storage設定を確認してください";
+            return;
+          }
+        }
+
+        project.resources = [...(project.resources || []), { title: title || file.name, url, note }];
         elements.resourceForm.reset();
         await saveState();
         render();
@@ -866,6 +884,39 @@
         }),
       });
       if (!response.ok) throw new Error("failed to save cloud state");
+    }
+
+    async function uploadResourceFile(project, file) {
+      if (!cloudConfig) throw new Error("cloud storage is not configured");
+      if (!isAllowedResourceFile(file)) throw new Error("unsupported file type");
+
+      const extension = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "file";
+      const safeProjectId = String(project.id || "project").replace(/[^a-zA-Z0-9_-]/g, "-");
+      const objectPath = `${safeProjectId}/${Date.now()}-${randomId()}.${extension}`;
+      const uploadUrl = `${cloudConfig.supabaseUrl}/storage/v1/object/${cloudConfig.resourceBucket}/${objectPath}`;
+
+      const response = await fetch(uploadUrl, {
+        method: "POST",
+        headers: {
+          ...supabaseHeaders(),
+          "Content-Type": file.type || "application/octet-stream",
+          "x-upsert": "true",
+        },
+        body: file,
+      });
+      if (!response.ok) throw new Error("failed to upload resource file");
+
+      return `${cloudConfig.supabaseUrl}/storage/v1/object/public/${cloudConfig.resourceBucket}/${objectPath}`;
+    }
+
+    function isAllowedResourceFile(file) {
+      if (!file?.name) return false;
+      const name = file.name.toLowerCase();
+      return name.endsWith(".pdf") || name.endsWith(".ppt") || name.endsWith(".pptx");
+    }
+
+    function randomId() {
+      return Math.random().toString(36).slice(2, 10);
     }
 
     function supabaseHeaders() {

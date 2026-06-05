@@ -2,5 +2,6 @@
   "supabaseUrl": "https://jlgigzvxjrqbgzapuapp.supabase.co",
   "supabaseAnonKey": "sb_publishable_8OLpYsGwwFkaKPzCyfNQOg_1G3nxmg8",
   "table": "workboard_state",
-  "recordId": "default"
+  "recordId": "default",
+  "resourceBucket": "workboard-resources"
 }
