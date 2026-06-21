@@ -313,6 +313,21 @@
       border-color: rgba(103, 232, 249, 0.5);
       background: rgba(103, 232, 249, 0.1);
     }
+    .archive-list {
+      border-top: 1px solid rgba(148, 163, 184, 0.16);
+      display: grid;
+      gap: 10px;
+      margin-top: 16px;
+      padding-top: 14px;
+    }
+    .archive-list h3 {
+      color: #cbd5e1;
+      font-size: 14px;
+      margin: 0;
+    }
+    .archive-card {
+      opacity: 0.78;
+    }
     .status {
       border: 1px solid rgba(190, 242, 100, 0.3);
       background: rgba(190, 242, 100, 0.1);
@@ -370,6 +385,12 @@
       background: var(--panel-strong);
       border-radius: 16px;
       padding: 13px;
+    }
+    .resource-memo {
+      color: #cbd5e1;
+      font-size: 13px;
+      line-height: 1.65;
+      margin: 8px 0 0;
     }
     .resource-link {
       color: #cffafe;
@@ -572,6 +593,7 @@
           </div>
         </form>
         <div class="project-list" data-project-list></div>
+        <div class="archive-list" data-archive-list></div>
       </section>
 
       <div class="right-stack">
@@ -634,12 +656,24 @@
               <input id="resource-title" name="title" autocomplete="off" placeholder="例: 提案資料">
             </div>
             <div class="field">
+              <label for="resource-type">種類</label>
+              <select id="resource-type" name="type">
+                <option value="URL">URL</option>
+                <option value="PDF">PDF</option>
+                <option value="PowerPoint">PowerPoint</option>
+              </select>
+            </div>
+            <div class="field">
               <label for="resource-url">URL</label>
               <input id="resource-url" name="url" autocomplete="off" placeholder="https://...">
             </div>
             <div class="field">
               <label for="resource-file">PDF / PowerPoint</label>
               <input id="resource-file" name="file" type="file" accept=".pdf,.ppt,.pptx,application/pdf,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation">
+            </div>
+            <div class="field">
+              <label for="resource-memo">資料メモ</label>
+              <textarea id="resource-memo" name="memo" placeholder="何の資料か、どこを見るかなど"></textarea>
             </div>
             <div class="button-row">
               <button class="ghost-button" type="submit">資料を追加</button>
@@ -683,6 +717,7 @@
       monthTitle: document.querySelector("[data-month-title]"),
       timeline: document.querySelector("[data-timeline]"),
       projectList: document.querySelector("[data-project-list]"),
+      archiveList: document.querySelector("[data-archive-list]"),
       todayPane: document.querySelector("[data-today-pane]"),
       resourcePane: document.querySelector("[data-resource-pane]"),
       projectForm: document.querySelector("[data-project-form]"),
@@ -776,21 +811,24 @@
         const title = String(form.get("title") || "").trim();
         let url = String(form.get("url") || "").trim();
         const file = form.get("file");
+        const memo = String(form.get("memo") || "").trim();
         if (!title && !file?.name) return;
         if (!url && !file?.name) return;
 
         let note = url ? "手入力URL" : "アップロード資料";
+        let type = String(form.get("type") || "URL");
         if (file?.name) {
           try {
             url = await uploadResourceFile(project, file);
             note = file.name;
+            type = inferResourceType(file.name);
           } catch {
             elements.saveStatus.textContent = "ファイルをアップロードできませんでした。Supabase Storage設定を確認してください";
             return;
           }
         }
 
-        project.resources = [...(project.resources || []), { title: title || file.name, url, note }];
+        project.resources = [...(project.resources || []), { title: title || file.name, url, type, memo, note }];
         elements.resourceForm.reset();
         await saveState();
         render();
@@ -932,6 +970,7 @@
       renderCalendar(projects);
       renderTimeline(projects);
       renderProjects(projects);
+      renderArchiveList();
       renderTodayPane();
       renderResourcePane();
       renderEditForm();
@@ -1004,6 +1043,25 @@
       });
     }
 
+    function renderArchiveList() {
+      const archived = archivedProjects();
+      elements.archiveList.innerHTML = `
+        <h3>アーカイブ一覧</h3>
+        ${archived.length > 0 ? archived.map((project) => `
+          <article class="project-card archive-card">
+            <div>
+              <strong class="project-title">${escapeHtml(project.name)}</strong>
+              <span class="project-meta">完了: ${project.completedAt ? formatDate(project.completedAt.slice(0, 10)) : "日付なし"} / 資料: ${(project.resources || []).length}</span>
+            </div>
+            <button class="ghost-button" type="button" data-restore-project="${escapeHtml(project.id)}">戻す</button>
+          </article>`).join("") : `<p class="hint">完了した案件はここに残ります。</p>`}
+      `;
+
+      elements.archiveList.querySelectorAll("[data-restore-project]").forEach((button) => {
+        button.addEventListener("click", async () => restoreProject(button.dataset.restoreProject));
+      });
+    }
+
     function renderTodayPane() {
       const project = selectedProject();
       if (!project) {
@@ -1044,7 +1102,8 @@
           ${resources.length > 0 ? resources.map((resource) => `
             <article class="resource-card">
               <strong class="resource-title">${escapeHtml(resource.title)}</strong>
-              <span class="resource-meta">${escapeHtml(resource.note || "資料")}</span>
+              <span class="resource-meta">${escapeHtml(resource.type || inferResourceType(resource.url || resource.note || ""))} / ${escapeHtml(resource.note || "資料")}</span>
+              ${resource.memo ? `<p class="resource-memo">${escapeHtml(resource.memo)}</p>` : ""}
               <a class="resource-link" href="${escapeHtml(resource.url)}" target="_blank" rel="noopener noreferrer">資料を開く</a>
             </article>`).join("") : `<p class="hint">まだ資料リンクはありません。</p>`}
         </div>
@@ -1090,6 +1149,19 @@
       render();
     }
 
+    async function restoreProject(projectId) {
+      const project = state.projects.find((item) => item.id === projectId);
+      if (!project) return;
+
+      project.completed = false;
+      project.status = "未着手";
+      delete project.completedAt;
+      selectedProjectId = project.id;
+
+      await saveState();
+      render();
+    }
+
     function selectProject(projectId) {
       selectedProjectId = projectId;
       render();
@@ -1104,6 +1176,19 @@
         if (!b.deadline) return -1;
         return a.deadline.localeCompare(b.deadline);
       }).filter((project) => !project.completed && project.status !== "完了");
+    }
+
+    function archivedProjects() {
+      return [...(state.projects || [])]
+        .filter((project) => project.completed || project.status === "完了")
+        .sort((a, b) => String(b.completedAt || "").localeCompare(String(a.completedAt || "")));
+    }
+
+    function inferResourceType(value) {
+      const lower = String(value || "").toLowerCase();
+      if (lower.endsWith(".pdf")) return "PDF";
+      if (lower.endsWith(".ppt") || lower.endsWith(".pptx")) return "PowerPoint";
+      return "URL";
     }
 
     function isWithinDays(dateString, days) {
