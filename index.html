@@ -761,8 +761,12 @@
 
     async function loadState() {
       if (cloudConfig) {
-        const cloudState = await loadCloudState();
-        if (cloudState) return cloudState;
+        try {
+          const cloudState = await loadCloudState();
+          if (cloudState) return cloudState;
+        } catch {
+          elements.saveStatus.textContent = "Supabase読み込みに失敗しました。ブラウザ内の一時データで開いています";
+        }
       }
 
       try {
