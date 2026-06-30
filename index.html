@@ -497,6 +497,33 @@
       grid-template-columns: 1fr 1fr;
       gap: 10px;
     }
+    .auth-panel {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 28px;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.28);
+      display: grid;
+      gap: 16px;
+      margin: 12vh auto 0;
+      max-width: 560px;
+      padding: 28px;
+    }
+    .auth-panel[hidden], [data-app-shell][hidden] {
+      display: none;
+    }
+    .auth-actions {
+      align-items: center;
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+      margin-top: 12px;
+    }
+    .auth-user {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+      text-align: right;
+    }
     @media (max-width: 980px) {
       .header { display: block; }
       .summary { margin-top: 18px; }
@@ -510,7 +537,25 @@
 </head>
 <body>
   <main>
-    <header class="header">
+    <section class="auth-panel" data-auth-panel hidden>
+      <div>
+        <p class="eyebrow">PRIVATE WORKBOARD</p>
+        <h1>仕事管理シート</h1>
+        <p class="lead">メールアドレスを入力すると、ログイン用リンクを送ります。リンクから戻ると、この仕事管理シートを開けます。</p>
+      </div>
+      <form class="form-grid" data-auth-form>
+        <div class="field">
+          <label for="auth-email">メールアドレス</label>
+          <input id="auth-email" name="email" type="email" autocomplete="email" required placeholder="you@example.com">
+        </div>
+        <div class="button-row">
+          <button class="primary-button" type="submit">ログインリンクを送る</button>
+          <span class="save-status" data-auth-status></span>
+        </div>
+      </form>
+    </section>
+
+    <header class="header" data-app-shell hidden>
       <div>
         <p class="eyebrow">WORKBOARD UI</p>
         <h1>仕事管理シート</h1>
@@ -528,9 +573,13 @@
         <div class="summary-card"><span>今週締切</span><strong data-summary-week>0</strong></div>
         <div class="summary-card"><span>今日の一手</span><strong data-summary-tasks>0</strong></div>
         <div class="summary-card"><span>資料</span><strong data-summary-resources>0</strong></div>
+        <div class="auth-actions">
+          <span class="auth-user" data-auth-user></span>
+          <button class="ghost-button" type="button" data-logout-button>ログアウト</button>
+        </div>
       </div>
     </header>
-        <section class="pane-overview" aria-label="4ペインの説明">
+        <section class="pane-overview" aria-label="4ペインの説明" data-app-shell hidden>
       <a class="pane-overview-item" href="#work-map">
         <strong>1. 仕事マップ</strong>
         <p>今月の締切をカレンダーとタイムラインで俯瞰する。締切が近い日は色で強調する。</p>
@@ -549,7 +598,7 @@
       </a>
     </section>
 
-    <section class="board" aria-label="仕事管理4ペイン">
+    <section class="board" aria-label="仕事管理4ペイン" data-app-shell hidden>
       <aside class="pane" id="work-map">
         <div class="pane-head">
           <div>
@@ -711,8 +760,15 @@
     let state = fallbackData;
     let selectedProjectId = "";
     let cloudConfig = null;
+    let authSession = null;
 
     const elements = {
+      authPanel: document.querySelector("[data-auth-panel]"),
+      authForm: document.querySelector("[data-auth-form]"),
+      authStatus: document.querySelector("[data-auth-status]"),
+      authUser: document.querySelector("[data-auth-user]"),
+      logoutButton: document.querySelector("[data-logout-button]"),
+      appShells: document.querySelectorAll("[data-app-shell]"),
       calendar: document.querySelector("[data-calendar]"),
       monthTitle: document.querySelector("[data-month-title]"),
       timeline: document.querySelector("[data-timeline]"),
@@ -734,6 +790,15 @@
 
     async function init() {
       cloudConfig = await loadCloudConfig();
+      authSession = readSessionFromUrl() || loadAuthSession();
+      bindAuth();
+
+      if (cloudConfig && !authSession) {
+        showAuthGate();
+        return;
+      }
+
+      showApp();
       state = await loadState();
       selectedProjectId = sortedProjects()[0]?.id || "";
       bindForms();
@@ -871,6 +936,103 @@
       });
     }
 
+    function bindAuth() {
+      elements.authForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        if (!cloudConfig) {
+          elements.authStatus.textContent = "Supabase設定が見つかりません";
+          return;
+        }
+
+        const form = new FormData(elements.authForm);
+        const email = String(form.get("email") || "").trim();
+        if (!email) return;
+
+        elements.authStatus.textContent = "送信中...";
+        try {
+          await sendMagicLink(email);
+          elements.authStatus.textContent = "メールを送信しました。届いたリンクから開いてください";
+          elements.authForm.reset();
+        } catch {
+          elements.authStatus.textContent = "ログインリンクを送信できませんでした。SupabaseのEmail設定を確認してください";
+        }
+      });
+
+      elements.logoutButton.addEventListener("click", () => {
+        clearAuthSession();
+        authSession = null;
+        showAuthGate();
+      });
+    }
+
+    async function sendMagicLink(email) {
+      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/otp`, {
+        method: "POST",
+        headers: {
+          "apikey": cloudConfig.supabaseAnonKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email,
+          create_user: true,
+          options: {
+            email_redirect_to: `${window.location.origin}${window.location.pathname}`,
+          },
+        }),
+      });
+      if (!response.ok) throw new Error("failed to send magic link");
+    }
+
+    function readSessionFromUrl() {
+      const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+      const accessToken = hash.get("access_token");
+      if (!accessToken) return null;
+
+      const expiresIn = Number(hash.get("expires_in") || 3600);
+      const session = {
+        accessToken,
+        refreshToken: hash.get("refresh_token") || "",
+        tokenType: hash.get("token_type") || "bearer",
+        expiresAt: Date.now() + expiresIn * 1000,
+      };
+      localStorage.setItem("workboard-auth-session", JSON.stringify(session));
+      window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+      return session;
+    }
+
+    function loadAuthSession() {
+      try {
+        const saved = JSON.parse(localStorage.getItem("workboard-auth-session") || "null");
+        if (!saved?.accessToken || saved.expiresAt <= Date.now()) {
+          clearAuthSession();
+          return null;
+        }
+        return saved;
+      } catch {
+        clearAuthSession();
+        return null;
+      }
+    }
+
+    function clearAuthSession() {
+      localStorage.removeItem("workboard-auth-session");
+    }
+
+    function showAuthGate() {
+      elements.authPanel.hidden = false;
+      elements.appShells.forEach((element) => {
+        element.hidden = true;
+      });
+    }
+
+    function showApp() {
+      elements.authPanel.hidden = true;
+      elements.appShells.forEach((element) => {
+        element.hidden = false;
+      });
+      elements.authUser.textContent = authSession ? "ログイン中" : "";
+    }
+
     async function saveState() {
       localStorage.setItem("workboard-projects", JSON.stringify(state));
 
@@ -964,7 +1126,7 @@
     function supabaseHeaders() {
       return {
         "apikey": cloudConfig.supabaseAnonKey,
-        "Authorization": `Bearer ${cloudConfig.supabaseAnonKey}`,
+        "Authorization": `Bearer ${authSession?.accessToken || cloudConfig.supabaseAnonKey}`,
       };
     }
 
