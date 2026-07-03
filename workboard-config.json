@@ -3,5 +3,11 @@
   "supabaseAnonKey": "sb_publishable_8OLpYsGwwFkaKPzCyfNQOg_1G3nxmg8",
   "table": "workboard_state",
   "recordId": "default",
-  "resourceBucket": "workboard-resources"
+  "resourceBucket": "workboard-resources",
+  "dataMode": "relational",
+  "relationalTables": {
+    "projects": "projects",
+    "tasks": "tasks",
+    "resources": "resources"
+  }
 }

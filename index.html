@@ -818,6 +818,12 @@
           table: config.table || "workboard_state",
           recordId: config.recordId || "default",
           resourceBucket: config.resourceBucket || "workboard-resources",
+          dataMode: config.dataMode || "json",
+          relationalTables: {
+            projects: config.relationalTables?.projects || "projects",
+            tasks: config.relationalTables?.tasks || "tasks",
+            resources: config.relationalTables?.resources || "resources",
+          },
         };
       } catch {
         return null;
@@ -827,10 +833,13 @@
     async function loadState() {
       if (cloudConfig) {
         try {
+          if (cloudConfig.dataMode === "relational") {
+            return await loadRelationalState();
+          }
           const cloudState = await loadCloudState();
           if (cloudState) return cloudState;
         } catch {
-          elements.saveStatus.textContent = "Supabase読み込みに失敗しました。ブラウザ内の一時データで開いています";
+          elements.saveStatus.textContent = "新しいDB読み込みに失敗しました。旧保存または一時データで開いています";
         }
       }
 
@@ -1038,6 +1047,11 @@
 
       if (cloudConfig) {
         try {
+          if (cloudConfig.dataMode === "relational") {
+            await saveRelationalState();
+            elements.saveStatus.textContent = "DBの表に保存しました";
+            return;
+          }
           await saveCloudState();
           elements.saveStatus.textContent = "Supabaseに保存しました";
           return;
@@ -1088,6 +1102,155 @@
         }),
       });
       if (!response.ok) throw new Error("failed to save cloud state");
+    }
+
+    async function loadRelationalState() {
+      const [projectRows, taskRows, resourceRows] = await Promise.all([
+        relationalRequest(cloudConfig.relationalTables.projects, "select=*&order=deadline.asc.nullslast"),
+        relationalRequest(cloudConfig.relationalTables.tasks, "select=*&order=position.asc"),
+        relationalRequest(cloudConfig.relationalTables.resources, "select=*&order=created_at.desc"),
+      ]);
+
+      const tasksByProject = groupBy(taskRows, "project_id");
+      const resourcesByProject = groupBy(resourceRows, "project_id");
+      return {
+        projects: projectRows.map((project) => ({
+          id: project.id,
+          name: project.name,
+          deadline: project.deadline || "",
+          status: project.status || "未着手",
+          nextAction: project.next_action || "",
+          details: project.details || "",
+          decisionMemo: project.decision_memo || "",
+          completed: Boolean(project.completed_at || project.archived_at || project.status === "完了"),
+          completedAt: project.completed_at || project.archived_at || "",
+          tasks: (tasksByProject.get(project.id) || []).map((task) => ({
+            text: task.text,
+            done: Boolean(task.done),
+          })),
+          resources: (resourcesByProject.get(project.id) || []).map((resource) => ({
+            id: resource.id,
+            title: resource.title,
+            url: resource.url || "",
+            type: resource.resource_type || "URL",
+            memo: resource.memo || "",
+            note: resource.note || "",
+            storageBucket: resource.storage_bucket || "",
+            storagePath: resource.storage_path || "",
+            archivedAt: resource.archived_at || "",
+          })),
+        })),
+      };
+    }
+
+    async function saveRelationalState() {
+      const projects = state.projects || [];
+      if (projects.length === 0) return;
+
+      await upsertRelationalRows(cloudConfig.relationalTables.projects, projects.map((project) => {
+        const completedAt = project.completedAt || (project.completed || project.status === "完了" ? new Date().toISOString() : null);
+        return {
+          id: project.id,
+          name: project.name,
+          deadline: project.deadline || null,
+          status: project.status || "未着手",
+          next_action: project.nextAction || null,
+          details: project.details || null,
+          decision_memo: project.decisionMemo || null,
+          completed_at: completedAt,
+          archived_at: completedAt,
+        };
+      }));
+
+      for (const project of projects) {
+        await Promise.all([
+          deleteRelationalRows(cloudConfig.relationalTables.tasks, `project_id=eq.${encodeURIComponent(project.id)}`),
+          deleteRelationalRows(cloudConfig.relationalTables.resources, `project_id=eq.${encodeURIComponent(project.id)}`),
+        ]);
+
+        const taskRows = (project.tasks || []).map((task, index) => ({
+          project_id: project.id,
+          text: task.text,
+          done: Boolean(task.done),
+          position: index,
+        })).filter((task) => task.text);
+
+        const resourceRows = (project.resources || []).map((resource) => ({
+          project_id: project.id,
+          title: resource.title,
+          resource_type: resource.type || inferResourceType(resource.url || resource.note || ""),
+          url: resource.url || null,
+          storage_bucket: resource.storageBucket || null,
+          storage_path: resource.storagePath || null,
+          memo: resource.memo || null,
+          note: resource.note || null,
+          archived_at: resource.archivedAt || null,
+        })).filter((resource) => resource.title && (resource.url || resource.storage_path));
+
+        if (taskRows.length > 0) {
+          await insertRelationalRows(cloudConfig.relationalTables.tasks, taskRows);
+        }
+        if (resourceRows.length > 0) {
+          await insertRelationalRows(cloudConfig.relationalTables.resources, resourceRows);
+        }
+      }
+    }
+
+    async function relationalRequest(table, query = "") {
+      const url = `${cloudConfig.supabaseUrl}/rest/v1/${table}${query ? "?" + query : ""}`;
+      const response = await fetch(url, {
+        headers: supabaseHeaders(),
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error(`failed to load ${table}`);
+      return await response.json();
+    }
+
+    async function upsertRelationalRows(table, rows) {
+      if (rows.length === 0) return;
+      const response = await fetch(`${cloudConfig.supabaseUrl}/rest/v1/${table}?on_conflict=id`, {
+        method: "POST",
+        headers: {
+          ...supabaseHeaders(),
+          "Content-Type": "application/json",
+          "Prefer": "resolution=merge-duplicates,return=minimal",
+        },
+        body: JSON.stringify(rows),
+      });
+      if (!response.ok) throw new Error(`failed to upsert ${table}`);
+    }
+
+    async function insertRelationalRows(table, rows) {
+      if (rows.length === 0) return;
+      const response = await fetch(`${cloudConfig.supabaseUrl}/rest/v1/${table}`, {
+        method: "POST",
+        headers: {
+          ...supabaseHeaders(),
+          "Content-Type": "application/json",
+          "Prefer": "return=minimal",
+        },
+        body: JSON.stringify(rows),
+      });
+      if (!response.ok) throw new Error(`failed to insert ${table}`);
+    }
+
+    async function deleteRelationalRows(table, query) {
+      const response = await fetch(`${cloudConfig.supabaseUrl}/rest/v1/${table}?${query}`, {
+        method: "DELETE",
+        headers: {
+          ...supabaseHeaders(),
+          "Prefer": "return=minimal",
+        },
+      });
+      if (!response.ok) throw new Error(`failed to delete ${table}`);
+    }
+
+    function groupBy(rows, key) {
+      return rows.reduce((map, row) => {
+        const value = row[key];
+        map.set(value, [...(map.get(value) || []), row]);
+        return map;
+      }, new Map());
     }
 
     async function uploadResourceFile(project, file) {
