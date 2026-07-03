@@ -962,8 +962,8 @@
           await sendMagicLink(email);
           elements.authStatus.textContent = "メールを送信しました。届いたリンクから開いてください";
           elements.authForm.reset();
-        } catch {
-          elements.authStatus.textContent = "ログインリンクを送信できませんでした。SupabaseのEmail設定を確認してください";
+        } catch (error) {
+          elements.authStatus.textContent = `ログインリンクを送信できませんでした。${error.message}`;
         }
       });
 
@@ -975,7 +975,8 @@
     }
 
     async function sendMagicLink(email) {
-      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/otp`, {
+      const redirectTo = `${window.location.origin}${window.location.pathname}`;
+      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
         method: "POST",
         headers: {
           "apikey": cloudConfig.supabaseAnonKey,
@@ -984,12 +985,12 @@
         body: JSON.stringify({
           email,
           create_user: true,
-          options: {
-            email_redirect_to: `${window.location.origin}${window.location.pathname}`,
-          },
         }),
       });
-      if (!response.ok) throw new Error("failed to send magic link");
+      if (!response.ok) {
+        const detail = await response.json().catch(() => null);
+        throw new Error(detail?.msg || detail?.message || "少し待ってから再度試してください");
+      }
     }
 
     function readSessionFromUrl() {
