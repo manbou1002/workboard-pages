@@ -1,0 +1,353 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>仕事管理シート 仕組み図解</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #050816;
+      --panel: rgba(15, 23, 42, 0.88);
+      --panel-strong: rgba(30, 41, 59, 0.88);
+      --border: rgba(148, 163, 184, 0.24);
+      --text: #e5eefb;
+      --muted: #94a3b8;
+      --cyan: #67e8f9;
+      --violet: #c4b5fd;
+      --lime: #bef264;
+      --amber: #fcd34d;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 10% 5%, rgba(103, 232, 249, 0.16), transparent 30%),
+        radial-gradient(circle at 88% 8%, rgba(196, 181, 253, 0.18), transparent 32%),
+        var(--bg);
+    }
+    main {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 56px;
+    }
+    .hero, .card {
+      border: 1px solid var(--border);
+      background: var(--panel);
+      border-radius: 24px;
+      padding: 24px;
+    }
+    .hero {
+      margin-bottom: 18px;
+      padding: clamp(24px, 4vw, 42px);
+    }
+    .eyebrow {
+      color: #cffafe;
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: 0.14em;
+      margin: 0 0 10px;
+    }
+    h1 {
+      font-size: clamp(34px, 6vw, 64px);
+      letter-spacing: -0.06em;
+      line-height: 1.02;
+      margin: 0;
+    }
+    h2 {
+      font-size: 24px;
+      letter-spacing: -0.04em;
+      margin: 0 0 14px;
+    }
+    h3 {
+      color: #e0f2fe;
+      font-size: 17px;
+      margin: 0 0 8px;
+    }
+    p, li {
+      color: #cbd5e1;
+      line-height: 1.75;
+    }
+    .lead {
+      color: #cbd5e1;
+      font-size: 17px;
+      line-height: 1.8;
+      margin: 18px 0 0;
+      max-width: 860px;
+    }
+    .grid {
+      display: grid;
+      gap: 18px;
+    }
+    .grid.two { grid-template-columns: 1fr 1fr; }
+    .grid.four { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 20px;
+    }
+    .pill {
+      border: 1px solid rgba(103, 232, 249, 0.28);
+      background: rgba(103, 232, 249, 0.1);
+      border-radius: 999px;
+      color: #cffafe;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 8px 10px;
+    }
+    .screen {
+      border: 1px solid rgba(103, 232, 249, 0.24);
+      background: #020617;
+      border-radius: 18px;
+      display: block;
+      overflow: hidden;
+      width: 100%;
+    }
+    .screen img {
+      display: block;
+      width: 100%;
+    }
+    .flow-card, .data-box {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: var(--panel-strong);
+      border-radius: 18px;
+      padding: 16px;
+    }
+    .flow-card strong, .data-box strong {
+      color: #cffafe;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .flow-number {
+      align-items: center;
+      background: rgba(103, 232, 249, 0.14);
+      border-radius: 999px;
+      color: #cffafe;
+      display: inline-flex;
+      font-size: 12px;
+      font-weight: 900;
+      height: 28px;
+      justify-content: center;
+      margin-bottom: 12px;
+      width: 28px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+    }
+    th, td {
+      border-bottom: 1px solid rgba(148, 163, 184, 0.18);
+      color: #cbd5e1;
+      line-height: 1.6;
+      padding: 12px 10px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th {
+      color: #cffafe;
+      font-size: 13px;
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: 0; }
+    .tag {
+      border: 1px solid rgba(190, 242, 100, 0.28);
+      border-radius: 999px;
+      color: #ecfccb;
+      display: inline-block;
+      font-size: 12px;
+      font-weight: 900;
+      padding: 4px 8px;
+      white-space: nowrap;
+    }
+    .tag.warn {
+      border-color: rgba(252, 211, 77, 0.32);
+      color: #fde68a;
+    }
+    .diagram {
+      align-items: center;
+      display: grid;
+      gap: 12px;
+      grid-template-columns: 1fr auto 1fr;
+    }
+    .arrow {
+      color: var(--cyan);
+      font-size: 28px;
+      font-weight: 900;
+    }
+    .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    a {
+      color: #cffafe;
+      font-weight: 900;
+      text-decoration: none;
+    }
+    .button {
+      border: 1px solid rgba(103, 232, 249, 0.28);
+      background: rgba(103, 232, 249, 0.1);
+      border-radius: 999px;
+      padding: 10px 14px;
+    }
+    @media (max-width: 900px) {
+      .grid.two, .grid.four, .diagram { grid-template-columns: 1fr; }
+      .arrow { transform: rotate(90deg); text-align: center; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <p class="eyebrow">WORKBOARD SYSTEM DIAGRAM</p>
+      <h1>仕事管理シート<br>仕組み図解</h1>
+      <p class="lead">仕事管理シートは、案件・今日の一手・資料・決定事項を1画面で管理し、ログイン後にSupabaseの表へ保存するツールです。公開はVercelで行い、リロードしてもデータが残ることを確認済みです。</p>
+      <div class="pill-row">
+        <span class="pill">メールログイン</span>
+        <span class="pill">Supabase DB</span>
+        <span class="pill">Vercel公開</span>
+        <span class="pill">リロード保存確認済み</span>
+      </div>
+      <div class="links">
+        <a class="button" href="./">ツールを開く</a>
+        <a class="button" href="./submission.html">提出用説明シート</a>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="card">
+        <h2>ツール画面のキャプチャ</h2>
+        <p>実際の仕事管理シート画面です。仕事マップ、案件リスト、今日の一手、資料ボックスを1画面で見られるようにしています。</p>
+        <figure class="screen">
+          <img src="./assets/workboard-screenshot.png" alt="仕事管理シートの画面キャプチャ。仕事マップ、案件リスト、今日の一手、資料ボックスが並んでいる。">
+        </figure>
+      </article>
+
+      <article class="card">
+        <h2>全体の流れ</h2>
+        <div class="grid four">
+          <div class="flow-card">
+            <span class="flow-number">1</span>
+            <strong>メールでログイン</strong>
+            <p>Supabase Authのメールリンクを使い、自分だけが開けるようにします。</p>
+          </div>
+          <div class="flow-card">
+            <span class="flow-number">2</span>
+            <strong>仕事を入力</strong>
+            <p>案件、締切、今日の一手、資料メモを画面から入力します。</p>
+          </div>
+          <div class="flow-card">
+            <span class="flow-number">3</span>
+            <strong>DBへ保存</strong>
+            <p>projects、tasks、resourcesに分けてSupabaseへ保存します。</p>
+          </div>
+          <div class="flow-card">
+            <span class="flow-number">4</span>
+            <strong>リロード確認</strong>
+            <p>ページを再読み込みしても追加した案件が残ることを確認しました。</p>
+          </div>
+        </div>
+      </article>
+
+      <section class="grid two">
+        <article class="card">
+          <h2>保存できるようにしたデータ</h2>
+          <table>
+            <thead>
+              <tr><th>データ</th><th>内容</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>案件データ</td><td>案件名、締切、ステータス、今日の一手、案件詳細、決定事項メモ、完了/アーカイブ状態。</td></tr>
+              <tr><td>作業データ</td><td>案件に紐づくチェックリスト、完了状態、表示順。</td></tr>
+              <tr><td>資料データ</td><td>資料名、種類、URL、ファイル保存先、資料メモ。</td></tr>
+              <tr><td>添付ファイル</td><td>PDFやPowerPointなどの実ファイル。</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="card">
+          <h2>保存先と選んだ理由</h2>
+          <table>
+            <thead>
+              <tr><th>保存先</th><th>理由</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>projects</td><td>案件を中心に画面が動くため、親データとして分けると検索・編集・アーカイブしやすい。</td></tr>
+              <tr><td>tasks</td><td>1つの案件に複数の作業が増えるため、別表にすると管理しやすい。</td></tr>
+              <tr><td>resources</td><td>1つの案件に複数の資料が増えるため、資料名・種類・メモを整理しやすい。</td></tr>
+              <tr><td>Supabase</td><td>ログイン、DB、Storageをまとめて扱え、どの端末からでも同じ内容を見られる。</td></tr>
+              <tr><td>Vercel</td><td>静的HTMLをすばやく公開でき、GitHub連携で更新しやすい。</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+
+      <article class="card">
+        <h2>データベースの紐づけ</h2>
+        <div class="diagram">
+          <div class="data-box">
+            <strong>projects</strong>
+            <p>案件の親データ。1案件につき1行。完了案件は archived_at / completed_at で通常一覧から隠します。</p>
+          </div>
+          <div class="arrow">→</div>
+          <div class="grid">
+            <div class="data-box">
+              <strong>tasks</strong>
+              <p>project_idでprojectsに紐づく作業チェックリスト。</p>
+            </div>
+            <div class="data-box">
+              <strong>resources</strong>
+              <p>project_idでprojectsに紐づく資料カード。ファイルはStorageにも置けます。</p>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <section class="grid two">
+        <article class="card">
+          <h2>工夫したポイント</h2>
+          <table>
+            <tbody>
+              <tr><td><span class="tag">工夫</span></td><td>4ペイン構成で、全体スケジュール、案件一覧、今日の一手、資料を同時に見られるようにした。</td></tr>
+              <tr><td><span class="tag">工夫</span></td><td>メールリンクログインを入れ、仕事情報を自分だけが見られる形にした。</td></tr>
+              <tr><td><span class="tag">工夫</span></td><td>DBを3表に分け、リロードしても保存内容が残るようにした。</td></tr>
+            </tbody>
+          </table>
+        </article>
+
+        <article class="card">
+          <h2>苦戦したポイント</h2>
+          <table>
+            <tbody>
+              <tr><td><span class="tag warn">苦戦</span></td><td>ログインリンクがGitHub Pagesのルートへ飛び、404になる問題があった。Vercel URLをSupabaseに登録して解決した。</td></tr>
+              <tr><td><span class="tag warn">苦戦</span></td><td>テーブルは作れても保存後に消える問題があった。RLSポリシーを追加し、本人だけ読み書きできるようにした。</td></tr>
+              <tr><td><span class="tag warn">苦戦</span></td><td>GitHub PagesではなくVercel公開が必要だったため、VercelにリポジトリをImportして公開先を切り替えた。</td></tr>
+            </tbody>
+          </table>
+        </article>
+      </section>
+
+      <article class="card">
+        <h2>課題要素の確認</h2>
+        <table>
+          <thead>
+            <tr><th>要素</th><th>状態</th><th>確認内容</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>何をどこに保存するか決める</td><td>完了</td><td>案件、タスク、資料、ファイルの保存先を決定。</td></tr>
+            <tr><td>データベースの箱を用意する</td><td>完了</td><td>Supabaseにprojects、tasks、resourcesを作成。</td></tr>
+            <tr><td>保存の仕組みを作る</td><td>完了</td><td>アプリからDBの表へ保存できるようにした。</td></tr>
+            <tr><td>リロードで消えないか確認する</td><td>完了</td><td>保存テストがリロード後も残ることを確認。</td></tr>
+            <tr><td>Vercelに公開する</td><td>完了</td><td>Vercelで公開し、ログインと保存確認を実施。</td></tr>
+          </tbody>
+        </table>
+      </article>
+    </section>
+  </main>
+</body>
+</html>
