@@ -100,15 +100,48 @@
       padding: 8px 10px;
     }
     .screen {
+      align-items: center;
       border: 1px solid rgba(103, 232, 249, 0.24);
-      background: #020617;
+      background: rgba(2, 6, 23, 0.58);
       border-radius: 18px;
-      display: block;
-      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      padding: 22px;
       width: 100%;
+    }
+    .phone-frame {
+      background: #020617;
+      border: 1px solid rgba(148, 163, 184, 0.32);
+      border-radius: 34px;
+      max-width: 390px;
+      overflow: hidden;
+      padding: 12px;
+      width: min(100%, 390px);
+    }
+    .phone-top {
+      align-items: center;
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+      padding: 2px 0 10px;
+    }
+    .phone-speaker {
+      background: rgba(148, 163, 184, 0.45);
+      border-radius: 999px;
+      height: 5px;
+      width: 54px;
+    }
+    .phone-screen {
+      border: 1px solid rgba(103, 232, 249, 0.2);
+      border-radius: 24px;
+      max-height: 720px;
+      overflow: hidden;
     }
     .screen img {
       display: block;
+      min-height: 720px;
+      object-fit: cover;
+      object-position: left top;
       width: 100%;
     }
     .flow-card, .data-box {
@@ -222,9 +255,14 @@
     <section class="grid">
       <article class="card">
         <h2>ツール画面のキャプチャ</h2>
-        <p>実際の仕事管理シート画面です。仕事マップ、案件リスト、今日の一手、資料ボックスを1画面で見られるようにしています。</p>
+        <p>スマホで見たときの画面イメージです。仕事マップ、案件リスト、今日の一手、資料ボックスを縦に確認できるようにしています。</p>
         <figure class="screen">
-          <img src="./assets/workboard-screenshot.png" alt="仕事管理シートの画面キャプチャ。仕事マップ、案件リスト、今日の一手、資料ボックスが並んでいる。">
+          <div class="phone-frame" aria-label="スマホ画面のモックアップ">
+            <div class="phone-top"><span class="phone-speaker"></span></div>
+            <div class="phone-screen">
+              <img src="./assets/workboard-screenshot.png" alt="仕事管理シートのスマホ画面キャプチャ。仕事マップ、案件リスト、今日の一手、資料ボックスが縦に確認できる。">
+            </div>
+          </div>
         </figure>
       </article>
 
