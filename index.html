@@ -524,6 +524,26 @@
       line-height: 1.5;
       text-align: right;
     }
+    .auth-help {
+      border: 1px solid rgba(252, 211, 77, 0.24);
+      background: rgba(252, 211, 77, 0.08);
+      border-radius: 16px;
+      color: #fde68a;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-top: 16px;
+      padding: 14px;
+    }
+    .offline-banner {
+      border: 1px solid rgba(252, 211, 77, 0.24);
+      background: rgba(252, 211, 77, 0.08);
+      border-radius: 16px;
+      color: #fde68a;
+      font-size: 13px;
+      line-height: 1.7;
+      margin-bottom: 18px;
+      padding: 14px 16px;
+    }
     @media (max-width: 980px) {
       .header { display: block; }
       .summary { margin-top: 18px; }
@@ -537,6 +557,9 @@
 </head>
 <body>
   <main>
+    <div class="offline-banner" data-offline-banner hidden>
+      オフラインモードです。資料と案件はこの端末のブラウザに保存されます。クラウド同期するにはログインリンクを送ってください。
+    </div>
     <section class="auth-panel" data-auth-panel hidden>
       <div>
         <p class="eyebrow">PRIVATE WORKBOARD</p>
@@ -553,6 +576,14 @@
           <span class="save-status" data-auth-status></span>
         </div>
       </form>
+      <div class="auth-help">
+        ログインリンクが届かない場合は、Supabaseの「Authentication &gt; URL Configuration」に
+        <strong>https://workboard-pages.vercel.app/</strong> を追加してください。
+        メール送信上限に達した場合は、下のボタンでこの端末だけ使えます。
+      </div>
+      <div class="button-row" style="margin-top:14px;">
+        <button class="ghost-button" type="button" data-offline-button>ログインせずにこの端末だけで使う</button>
+      </div>
     </section>
 
     <header class="header" data-app-shell hidden>
@@ -762,12 +793,15 @@
     let selectedProjectId = "";
     let cloudConfig = null;
     let authSession = null;
+    let offlineMode = false;
 
     const elements = {
       authPanel: document.querySelector("[data-auth-panel]"),
       authForm: document.querySelector("[data-auth-form]"),
       authStatus: document.querySelector("[data-auth-status]"),
       authUser: document.querySelector("[data-auth-user]"),
+      offlineButton: document.querySelector("[data-offline-button]"),
+      offlineBanner: document.querySelector("[data-offline-banner]"),
       logoutButton: document.querySelector("[data-logout-button]"),
       appShells: document.querySelectorAll("[data-app-shell]"),
       calendar: document.querySelector("[data-calendar]"),
@@ -793,13 +827,48 @@
     async function init() {
       cloudConfig = await loadCloudConfig();
       authSession = readSessionFromUrl() || loadAuthSession();
+      offlineMode = isOfflineMode();
       bindAuth();
 
-      if (cloudConfig && !authSession) {
+      if (authSession) {
+        clearOfflineMode();
+        offlineMode = false;
+      }
+
+      if (shouldRequireAuth()) {
         showAuthGate();
         return;
       }
 
+      showApp();
+      state = await loadState();
+      selectedProjectId = sortedProjects()[0]?.id || "";
+      bindForms();
+      render();
+    }
+
+    function shouldRequireAuth() {
+      if (!cloudConfig) return false;
+      if (cloudConfig.authRequired === false) return false;
+      if (offlineMode) return false;
+      return cloudConfig.dataMode === "relational" && !authSession;
+    }
+
+    function isOfflineMode() {
+      return sessionStorage.getItem("workboard-offline-mode") === "true";
+    }
+
+    function enableOfflineMode() {
+      sessionStorage.setItem("workboard-offline-mode", "true");
+      offlineMode = true;
+    }
+
+    function clearOfflineMode() {
+      sessionStorage.removeItem("workboard-offline-mode");
+      offlineMode = false;
+    }
+
+    async function bootApp() {
       showApp();
       state = await loadState();
       selectedProjectId = sortedProjects()[0]?.id || "";
@@ -821,6 +890,7 @@
           recordId: config.recordId || "default",
           resourceBucket: config.resourceBucket || "workboard-resources",
           dataMode: config.dataMode || "json",
+          authRequired: config.authRequired !== false,
           relationalTables: {
             projects: config.relationalTables?.projects || "projects",
             tasks: config.relationalTables?.tasks || "tasks",
@@ -833,15 +903,20 @@
     }
 
     async function loadState() {
-      if (cloudConfig) {
+      if (cloudConfig && cloudConfig.dataMode === "relational" && authSession?.accessToken) {
         try {
-          if (cloudConfig.dataMode === "relational") {
-            return await loadRelationalState();
-          }
+          return await loadRelationalState();
+        } catch {
+          elements.saveStatus.textContent = "クラウド読み込みに失敗しました。端末内データで開いています";
+        }
+      }
+
+      if (cloudConfig && cloudConfig.dataMode !== "relational") {
+        try {
           const cloudState = await loadCloudState();
           if (cloudState) return cloudState;
         } catch {
-          elements.saveStatus.textContent = "新しいDB読み込みに失敗しました。旧保存または一時データで開いています";
+          elements.saveStatus.textContent = "クラウド読み込みに失敗しました。端末内データで開いています";
         }
       }
 
@@ -1002,20 +1077,27 @@
           elements.authStatus.textContent = "メールを送信しました。届いたリンクから開いてください";
           elements.authForm.reset();
         } catch (error) {
-          elements.authStatus.textContent = `ログインリンクを送信できませんでした。${error.message}`;
+          elements.authStatus.textContent = error.message;
         }
+      });
+
+      elements.offlineButton?.addEventListener("click", async () => {
+        enableOfflineMode();
+        await bootApp();
       });
 
       elements.logoutButton.addEventListener("click", () => {
         clearAuthSession();
+        clearOfflineMode();
         authSession = null;
+        offlineMode = false;
         showAuthGate();
       });
     }
 
     async function sendMagicLink(email) {
-      const redirectTo = `${window.location.origin}${window.location.pathname}`;
-      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/otp?redirect_to=${encodeURIComponent(redirectTo)}`, {
+      const redirectTo = normalizeRedirectUrl(`${window.location.origin}${window.location.pathname}`);
+      const response = await fetch(`${cloudConfig.supabaseUrl}/auth/v1/otp`, {
         method: "POST",
         headers: {
           "apikey": cloudConfig.supabaseAnonKey,
@@ -1024,12 +1106,36 @@
         body: JSON.stringify({
           email,
           create_user: true,
+          options: {
+            shouldCreateUser: true,
+            emailRedirectTo: redirectTo,
+          },
         }),
       });
       if (!response.ok) {
         const detail = await response.json().catch(() => null);
-        throw new Error(detail?.msg || detail?.message || "少し待ってから再度試してください");
+        throw new Error(formatAuthError(response.status, detail));
       }
+    }
+
+    function normalizeRedirectUrl(url) {
+      return url.endsWith("/") ? url : `${url}/`;
+    }
+
+    function formatAuthError(status, detail) {
+      const code = detail?.error_code || detail?.code || "";
+      const message = detail?.msg || detail?.message || detail?.error_description || "";
+
+      if (code === "over_email_send_rate_limit" || status === 429) {
+        return "メール送信の上限に達しました。1時間ほど待つか、「ログインせずにこの端末だけで使う」を押してください。";
+      }
+      if (message.includes("redirect") || message.includes("Redirect")) {
+        return `リダイレクトURLが未登録です。Supabaseの URL Configuration に ${normalizeRedirectUrl(`${window.location.origin}${window.location.pathname}`)} を追加してください。`;
+      }
+      if (message) {
+        return `ログインリンクを送信できませんでした。${message}`;
+      }
+      return "ログインリンクを送信できませんでした。少し待ってから再度試してください。";
     }
 
     function readSessionFromUrl() {
@@ -1069,6 +1175,9 @@
 
     function showAuthGate() {
       elements.authPanel.hidden = false;
+      if (elements.offlineBanner) {
+        elements.offlineBanner.hidden = true;
+      }
       elements.appShells.forEach((element) => {
         element.hidden = true;
       });
@@ -1079,17 +1188,28 @@
       elements.appShells.forEach((element) => {
         element.hidden = false;
       });
-      elements.authUser.textContent = authSession ? "ログイン中" : "";
+      if (elements.offlineBanner) {
+        elements.offlineBanner.hidden = !offlineMode;
+      }
+      elements.authUser.textContent = authSession
+        ? "ログイン中"
+        : offlineMode
+          ? "オフライン使用中"
+          : "";
     }
 
     async function saveState() {
       localStorage.setItem("workboard-projects", JSON.stringify(state));
 
+      if (cloudConfig && offlineMode) {
+        elements.saveStatus.textContent = "この端末に保存しました（オフライン）";
+        return { ok: true, offline: true };
+      }
+
       if (cloudConfig) {
         if (cloudConfig.dataMode === "relational" && !authSession?.accessToken) {
-          const message = "ログインが切れています。メールリンクから再度ログインしてください";
-          elements.saveStatus.textContent = message;
-          return { ok: false, error: message };
+          elements.saveStatus.textContent = "この端末に保存しました。クラウド同期にはログインが必要です";
+          return { ok: true, offline: true };
         }
 
         try {
