@@ -195,8 +195,80 @@
       border-radius: 999px;
       padding: 10px 14px;
     }
+    .pane-map {
+      display: grid;
+      grid-template-columns: 0.95fr 1.05fr 1fr;
+      gap: 12px;
+    }
+    .pane-box {
+      border: 1px solid rgba(148, 163, 184, 0.2);
+      background: var(--panel-strong);
+      border-radius: 18px;
+      padding: 16px;
+      min-height: 160px;
+    }
+    .pane-box strong {
+      color: #cffafe;
+      display: block;
+      margin-bottom: 8px;
+    }
+    .pane-box small, .pane-box p {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.65;
+      margin: 0;
+    }
+    .right-stack {
+      display: grid;
+      gap: 12px;
+    }
+    .mini-calendar {
+      display: grid;
+      gap: 4px;
+      grid-template-columns: repeat(7, 1fr);
+      margin-top: 10px;
+    }
+    .mini-calendar span {
+      align-items: center;
+      aspect-ratio: 1;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid rgba(148, 163, 184, 0.14);
+      border-radius: 8px;
+      color: #94a3b8;
+      display: flex;
+      font-size: 10px;
+      font-weight: 700;
+      justify-content: center;
+    }
+    .mini-calendar span.soon {
+      background: rgba(196, 181, 253, 0.18);
+      border-color: rgba(196, 181, 253, 0.32);
+      color: #ddd6fe;
+    }
+    .mini-calendar span.hot {
+      background: rgba(249, 168, 212, 0.2);
+      border-color: rgba(249, 168, 212, 0.34);
+      color: #fbcfe8;
+    }
+    .mini-timeline, .mini-resource {
+      border: 1px solid rgba(148, 163, 184, 0.16);
+      background: rgba(15, 23, 42, 0.55);
+      border-radius: 12px;
+      margin-top: 10px;
+      padding: 10px;
+    }
+    .mini-timeline div, .mini-resource div {
+      color: #cbd5e1;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .mini-resource div + div {
+      border-top: 1px solid rgba(148, 163, 184, 0.14);
+      margin-top: 8px;
+      padding-top: 8px;
+    }
     @media (max-width: 900px) {
-      .grid.two, .grid.four, .diagram { grid-template-columns: 1fr; }
+      .grid.two, .grid.four, .diagram, .pane-map { grid-template-columns: 1fr; }
       .arrow { transform: rotate(90deg); text-align: center; }
     }
   </style>
@@ -206,12 +278,13 @@
     <section class="hero">
       <p class="eyebrow">WORKBOARD SYSTEM DIAGRAM</p>
       <h1>仕事管理シート<br>仕組み図解</h1>
-      <p class="lead">仕事管理シートは、案件・今日の一手・資料・決定事項を1画面で管理し、ログイン後にSupabaseの表へ保存するツールです。公開はVercelで行い、リロードしてもデータが残ることを確認済みです。</p>
+      <p class="lead">仕事管理シートは、仕事マップのカレンダー・案件リスト・今日の一手・資料ボックスの4ペインで仕事を管理し、ログイン後にSupabaseの表へ保存するツールです。公開はVercelで行い、リロードしてもデータが残ることを確認済みです。</p>
       <div class="pill-row">
-        <span class="pill">メールログイン</span>
+        <span class="pill">4ペインUI</span>
+        <span class="pill">仕事マップカレンダー</span>
+        <span class="pill">資料ボックス</span>
         <span class="pill">Supabase DB</span>
         <span class="pill">Vercel公開</span>
-        <span class="pill">リロード保存確認済み</span>
       </div>
       <div class="links">
         <a class="button" href="./">ツールを開く</a>
@@ -229,6 +302,60 @@
       </article>
 
       <article class="card">
+        <h2>4ペイン構成</h2>
+        <p>画面は左から「全体 → 案件 → 今日 → 資料」の順で見える4ペイン構成です。仕事マップのカレンダーと資料ボックスは、締切の俯瞰と資料整理のために独立したペインとして置いています。</p>
+        <div class="pane-map">
+          <div class="pane-box">
+            <strong>1. 仕事マップ</strong>
+            <small>今月の締切をカレンダーとタイムラインで俯瞰する。締切が近い日は色で強調する。</small>
+            <div class="mini-calendar" aria-hidden="true">
+              <span>1</span><span>2</span><span>3</span><span>4</span><span>5</span><span>6</span><span>7</span>
+              <span>8</span><span>9</span><span>10</span><span>11</span><span>12</span><span class="soon">13</span><span>14</span>
+              <span>15</span><span>16</span><span class="hot">17</span><span>18</span><span>19</span><span>20</span><span>21</span>
+              <span>22</span><span>23</span><span>24</span><span>25</span><span>26</span><span>27</span><span>28</span>
+            </div>
+            <div class="mini-timeline">
+              <div><strong style="color:#cffafe;">5/17 A社 クレジット明細</strong><br>明細を確認して送る</div>
+              <div style="margin-top:8px;"><strong style="color:#cffafe;">5/20 D社ネーミング</strong><br>案を3つに絞る</div>
+            </div>
+          </div>
+          <div class="pane-box">
+            <strong>2. 案件リスト</strong>
+            <small>抱えている仕事を一覧する。案件名、締切、今日の一手、完了チェックを並べる。締切入力はカレンダーボタンから選べる。</small>
+          </div>
+          <div class="right-stack">
+            <div class="pane-box">
+              <strong>3. 今日の一手</strong>
+              <small>選択した案件について、今日進める具体タスクとチェックリストを確認する。</small>
+            </div>
+            <div class="pane-box">
+              <strong>4. 資料ボックス</strong>
+              <small>選択中案件の資料リンク、PDF/PowerPoint、資料メモ、案件詳細、決定事項を1か所に集約する。</small>
+              <div class="mini-resource">
+                <div><strong style="color:#cffafe;">AIスクール todo-5</strong><br>URL / 課題ページ</div>
+                <div><strong style="color:#cffafe;">提案資料.pdf</strong><br>PDF / 先方確認用</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+
+      <article class="card">
+        <h2>画面と保存データの対応</h2>
+        <table>
+          <thead>
+            <tr><th>画面</th><th>見えるもの</th><th>保存先</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>仕事マップ</td><td>月間カレンダー、締切日の色分け、直近5件のタイムライン</td><td>projects.deadline / projects.name / projects.next_action</td></tr>
+            <tr><td>案件リスト</td><td>案件一覧、追加フォーム、完了アーカイブ</td><td>projects</td></tr>
+            <tr><td>今日の一手</td><td>選択案件の次の一手、チェックリスト</td><td>projects.next_action / tasks</td></tr>
+            <tr><td>資料ボックス</td><td>資料カード、URL/PDF/PPT、資料メモ、案件詳細、決定事項</td><td>resources / projects.details / projects.decision_memo</td></tr>
+          </tbody>
+        </table>
+      </article>
+
+      <article class="card">
         <h2>全体の流れ</h2>
         <div class="grid four">
           <div class="flow-card">
@@ -239,7 +366,7 @@
           <div class="flow-card">
             <span class="flow-number">2</span>
             <strong>仕事を入力</strong>
-            <p>案件、締切、今日の一手、資料メモを画面から入力します。</p>
+            <p>仕事マップで締切を確認し、案件リストと資料ボックスから案件・今日の一手・資料を入力します。</p>
           </div>
           <div class="flow-card">
             <span class="flow-number">3</span>
@@ -313,8 +440,9 @@
           <h2>工夫したポイント</h2>
           <table>
             <tbody>
+              <tr><td><span class="tag">工夫</span></td><td>仕事マップに月間カレンダーとタイムラインを置き、締切が近い日を色で強調して全体像を先に見られるようにした。</td></tr>
+              <tr><td><span class="tag">工夫</span></td><td>資料ボックスでURL・PDF/PowerPoint・資料メモ・案件詳細・決定事項を1か所に集約した。</td></tr>
               <tr><td><span class="tag">工夫</span></td><td>4ペイン構成で、全体スケジュール、案件一覧、今日の一手、資料を同時に見られるようにした。</td></tr>
-              <tr><td><span class="tag">工夫</span></td><td>メールリンクログインを入れ、仕事情報を自分だけが見られる形にした。</td></tr>
               <tr><td><span class="tag">工夫</span></td><td>DBを3表に分け、リロードしても保存内容が残るようにした。</td></tr>
             </tbody>
           </table>
