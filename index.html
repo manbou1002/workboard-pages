@@ -726,6 +726,7 @@
             </div>
             <div class="button-row">
               <button class="ghost-button" type="submit">資料を追加</button>
+              <span class="save-status" data-resource-status></span>
             </div>
           </form>
         </section>
@@ -780,6 +781,7 @@
       projectEditForm: document.querySelector("[data-project-edit-form]"),
       resourceForm: document.querySelector("[data-resource-form]"),
       saveStatus: document.querySelector("[data-save-status]"),
+      resourceStatus: document.querySelector("[data-resource-status]"),
       summaryProjects: document.querySelector("[data-summary-projects]"),
       summaryWeek: document.querySelector("[data-summary-week]"),
       summaryTasks: document.querySelector("[data-summary-tasks]"),
@@ -883,32 +885,69 @@
       elements.resourceForm.addEventListener("submit", async (event) => {
         event.preventDefault();
         const project = selectedProject();
-        if (!project) return;
+        if (!project) {
+          setResourceStatus("先に案件を選んでください");
+          return;
+        }
 
         const form = new FormData(elements.resourceForm);
         const title = String(form.get("title") || "").trim();
         let url = String(form.get("url") || "").trim();
         const file = form.get("file");
         const memo = String(form.get("memo") || "").trim();
-        if (!title && !file?.name) return;
-        if (!url && !file?.name) return;
-
-        let note = url ? "手入力URL" : "アップロード資料";
         let type = String(form.get("type") || "URL");
+        let note = url ? "手入力URL" : "アップロード資料";
+        let storageBucket = "";
+        let storagePath = "";
+
+        if (!title && !file?.name) {
+          setResourceStatus("資料名を入力するか、ファイルを選んでください");
+          return;
+        }
+        if (!url && !file?.name) {
+          setResourceStatus("URLを入力するか、PDF/PowerPointファイルを選んでください");
+          return;
+        }
+
+        setResourceStatus("保存中...");
         if (file?.name) {
           try {
-            url = await uploadResourceFile(project, file);
+            const uploaded = await uploadResourceFile(project, file);
+            url = uploaded.url;
+            storageBucket = uploaded.storageBucket;
+            storagePath = uploaded.storagePath;
             note = file.name;
             type = inferResourceType(file.name);
-          } catch {
-            elements.saveStatus.textContent = "ファイルをアップロードできませんでした。Supabase Storage設定を確認してください";
+          } catch (error) {
+            setResourceStatus(error.message || "ファイルをアップロードできませんでした");
             return;
           }
         }
 
-        project.resources = [...(project.resources || []), { title: title || file.name, url, type, memo, note }];
+        project.resources = [...(project.resources || []), {
+          id: "resource-" + Date.now() + "-" + randomId(),
+          title: title || file.name,
+          url,
+          type,
+          memo,
+          note,
+          storageBucket,
+          storagePath,
+        }];
         elements.resourceForm.reset();
-        await saveState();
+
+        try {
+          const result = await saveState();
+          if (result?.ok) {
+            setResourceStatus("資料を保存しました");
+          } else {
+            setResourceStatus(result?.error || "資料を保存できませんでした");
+            project.resources = (project.resources || []).slice(0, -1);
+          }
+        } catch (error) {
+          setResourceStatus(error.message || "資料を保存できませんでした");
+          project.resources = (project.resources || []).slice(0, -1);
+        }
         render();
       });
 
@@ -1047,18 +1086,26 @@
       localStorage.setItem("workboard-projects", JSON.stringify(state));
 
       if (cloudConfig) {
+        if (cloudConfig.dataMode === "relational" && !authSession?.accessToken) {
+          const message = "ログインが切れています。メールリンクから再度ログインしてください";
+          elements.saveStatus.textContent = message;
+          return { ok: false, error: message };
+        }
+
         try {
           if (cloudConfig.dataMode === "relational") {
             await saveRelationalState();
             elements.saveStatus.textContent = "DBの表に保存しました";
-            return;
+            return { ok: true };
           }
+
           await saveCloudState();
           elements.saveStatus.textContent = "Supabaseに保存しました";
-          return;
-        } catch {
-          elements.saveStatus.textContent = "Supabase保存に失敗しました。ブラウザ内には一時保存済みです";
-          return;
+          return { ok: true };
+        } catch (error) {
+          const message = error?.message || "Supabase保存に失敗しました。ブラウザ内には一時保存済みです";
+          elements.saveStatus.textContent = message;
+          return { ok: false, error: message };
         }
       }
 
@@ -1070,8 +1117,10 @@
         });
         if (!response.ok) throw new Error("failed");
         elements.saveStatus.textContent = "保存しました";
+        return { ok: true };
       } catch {
         elements.saveStatus.textContent = "ブラウザ内に一時保存しました";
+        return { ok: false, error: "ブラウザ内に一時保存しました" };
       }
     }
 
@@ -1177,6 +1226,7 @@
         })).filter((task) => task.text);
 
         const resourceRows = (project.resources || []).map((resource) => ({
+          id: resource.id || ("resource-" + Date.now() + "-" + randomId()),
           project_id: project.id,
           title: resource.title,
           resource_type: resource.type || inferResourceType(resource.url || resource.note || ""),
@@ -1192,7 +1242,7 @@
           await insertRelationalRows(cloudConfig.relationalTables.tasks, taskRows);
         }
         if (resourceRows.length > 0) {
-          await insertRelationalRows(cloudConfig.relationalTables.resources, resourceRows);
+          await upsertRelationalRows(cloudConfig.relationalTables.resources, resourceRows);
         }
       }
     }
@@ -1218,7 +1268,9 @@
         },
         body: JSON.stringify(rows),
       });
-      if (!response.ok) throw new Error(`failed to upsert ${table}`);
+      if (!response.ok) {
+        throw new Error(await readApiError(response, table));
+      }
     }
 
     async function insertRelationalRows(table, rows) {
@@ -1232,7 +1284,9 @@
         },
         body: JSON.stringify(rows),
       });
-      if (!response.ok) throw new Error(`failed to insert ${table}`);
+      if (!response.ok) {
+        throw new Error(await readApiError(response, table));
+      }
     }
 
     async function deleteRelationalRows(table, query) {
@@ -1243,7 +1297,22 @@
           "Prefer": "return=minimal",
         },
       });
-      if (!response.ok) throw new Error(`failed to delete ${table}`);
+      if (!response.ok) {
+        throw new Error(await readApiError(response, table));
+      }
+    }
+
+    async function readApiError(response, table) {
+      const detail = await response.json().catch(() => null);
+      const message = detail?.message || detail?.msg || detail?.error_description || `failed to access ${table}`;
+
+      if (response.status === 401 || message.includes("row-level security")) {
+        return `${table}への保存に失敗しました。ログインし直してください（${message}）`;
+      }
+      if (message.includes("Bucket not found")) {
+        return "Storageバケット workboard-resources が未作成です。Supabase SQL Editorで docs/workboard-enable-storage.sql を実行してください";
+      }
+      return `${table}への保存に失敗しました: ${message}`;
     }
 
     function groupBy(rows, key) {
@@ -1256,11 +1325,15 @@
 
     async function uploadResourceFile(project, file) {
       if (!cloudConfig) throw new Error("cloud storage is not configured");
-      if (!isAllowedResourceFile(file)) throw new Error("unsupported file type");
+      if (!authSession?.accessToken) throw new Error("ファイル保存にはログインが必要です");
+      if (!isAllowedResourceFile(file)) throw new Error("PDFまたはPowerPointのみアップロードできます");
 
       const extension = file.name.includes(".") ? file.name.split(".").pop().toLowerCase() : "file";
       const safeProjectId = String(project.id || "project").replace(/[^a-zA-Z0-9_-]/g, "-");
-      const objectPath = `${safeProjectId}/${Date.now()}-${randomId()}.${extension}`;
+      const userId = getAuthUserId();
+      const objectPath = userId
+        ? `${userId}/${safeProjectId}/${Date.now()}-${randomId()}.${extension}`
+        : `${safeProjectId}/${Date.now()}-${randomId()}.${extension}`;
       const uploadUrl = `${cloudConfig.supabaseUrl}/storage/v1/object/${cloudConfig.resourceBucket}/${objectPath}`;
 
       const response = await fetch(uploadUrl, {
@@ -1272,9 +1345,15 @@
         },
         body: file,
       });
-      if (!response.ok) throw new Error("failed to upload resource file");
+      if (!response.ok) {
+        throw new Error(await readApiError(response, "storage"));
+      }
 
-      return `${cloudConfig.supabaseUrl}/storage/v1/object/public/${cloudConfig.resourceBucket}/${objectPath}`;
+      return {
+        url: `${cloudConfig.supabaseUrl}/storage/v1/object/public/${cloudConfig.resourceBucket}/${objectPath}`,
+        storageBucket: cloudConfig.resourceBucket,
+        storagePath: objectPath,
+      };
     }
 
     function isAllowedResourceFile(file) {
@@ -1285,6 +1364,25 @@
 
     function randomId() {
       return Math.random().toString(36).slice(2, 10);
+    }
+
+    function getAuthUserId() {
+      if (!authSession?.accessToken) return null;
+      try {
+        const payload = JSON.parse(atob(authSession.accessToken.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")));
+        return payload.sub || null;
+      } catch {
+        return null;
+      }
+    }
+
+    function setResourceStatus(message) {
+      if (elements.resourceStatus) {
+        elements.resourceStatus.textContent = message;
+      }
+      if (message && !message.startsWith("保存中")) {
+        elements.saveStatus.textContent = message;
+      }
     }
 
     function supabaseHeaders() {
